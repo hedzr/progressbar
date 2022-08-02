@@ -1,0 +1,83 @@
+// Copyright © 2022 Atonal Authors
+//
+
+package main
+
+import (
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"sync"
+
+	"github.com/hedzr/progressbar"
+)
+
+func main() {
+	// cursor.Hide()
+	// defer cursor.Show()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	_, _ = fmt.Fprintln(progressbar.New(), "Starting....")
+
+	req, _ := http.NewRequest("GET", "https://dl.google.com/go/go1.14.2.src.tar.gz", nil)
+	resp, _ := http.DefaultClient.Do(req)
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("Error: %v", err)
+		}
+	}(resp.Body) //nolint:govet
+
+	f, _ := os.OpenFile("go1.14.2.src.tar.gz", os.O_CREATE|os.O_WRONLY, 0o644)
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			log.Printf("Error: %v", err)
+		}
+	}(f)
+
+	const BUFFERSIZE = 4096
+	buf := make([]byte, BUFFERSIZE)
+
+	// s.w = io.MultiWriter(f, bar)
+
+	progressbar.Add(
+		resp.ContentLength,
+		"downloading go1.14.2.src.tar.gz", // fmt.Sprintf("downloading %v", s.fn),
+		// progressbar.WithBarSpinner(14),
+		// progressbar.WithBarStepper(3),
+		progressbar.WithBarStepper(0),
+		progressbar.WithBarOnCompleted(func(bar progressbar.PB) {
+			wg.Done()
+		}),
+		progressbar.WithBarWorker(func(bar progressbar.PB, exitCh <-chan struct{}) {
+			for {
+				n, err := resp.Body.Read(buf)
+				if err != nil && err != io.EOF {
+					return
+				}
+				if n == 0 {
+					break
+				}
+
+				select {
+				case <-exitCh:
+					return
+				default:
+				}
+
+				if _, err = io.MultiWriter(f, bar).Write(buf[:n]); err != nil {
+					return
+				}
+			}
+
+			// _, _ = io.Copy(io.MultiWriter(f, bar), resp.Body)
+		}),
+	)
+
+	wg.Wait()
+}

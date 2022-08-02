@@ -1,0 +1,194 @@
+---
+app:
+  bgo:
+    build:
+      # the predefined limitations
+      # for guiding which os and arch will be building in auto scope.
+      #
+      # If 'bgo.build.for' is empty slice, the whole available 'go tool dist list'
+      # will be used.
+      #
+      #for:
+      #  - "linux/amd64"
+      #  - "windows/amd64"
+      #  - "darwin/amd64"
+      #  - "darwin/arm64"
+
+      # the predefined limitations
+      os: [ linux ]
+
+      # the predefined limitations
+      #,386,arm64
+      arch: [ amd64 ]
+
+      ldflags: [ "-s", "-w" ]
+
+      # build scopes: auto, full, short
+      #
+      #    bgo --auto will scan the .bgo.yml in workdir and all sub-folders and apply its
+      #    bgo --full will populate all supported targets with 'go tool dist list'
+      #    bgo --short will build just for current hosted CPU and Arch
+      #
+      # First project in first group is **active** project.
+      # Or, first project scanned is **active** if without .bgo.yml found.
+      #
+      # A **active** project will be built in working in 'short' scope.
+      scope: auto
+
+      output:
+        dir: ./bin
+        # split-to sample: "{{.GroupKey}}/{{.ProjectName}}"
+        #
+        # named-as sample: "{{.AppName}}-{{.Version}}-{{.Os}}-{{.Arch}}"
+        # ## suffix-as: "{{.If .Os == windows}}.exe{{.Else}}{{.EndIf}}"
+        # ## zip-suffix-as: "{{.If .Os == windows}}.7z{{.Else}}.xz{{.EndIf}}"
+
+      # wild matches with '*' and '?'
+      # excludes patterns will be performed to project directories.
+      # but projects specified in .bgo.yml are always enabled.
+      excludes:
+        - "study*"
+        - "test*"
+
+      goproxy:                # optional, string,
+
+      projects:
+        000-default-group:
+          leading-text:
+          items:
+
+            019-atonal: # <- form: sortingKey-projectName
+              name:           # <- app name
+              dir: cli/atonal
+              gen: false
+              install: false
+              cgo: true             # http compress 'br' need cgo enabled (why: github.com/google/brotli/go/cbrotli)
+              keep-workdir: true    # true: don't switch workdir to 'dir'
+              use-workdir:          # specify a special workdir
+              tags: [ nomsgpack,hzstudio ]
+
+
+            100-progressbar-example-steppers:
+              dir: ./examples/steppers
+              gen: false
+              install: false
+              cgo: false
+              keep-workdir: true
+              use-workdir:
+              tags: [ nomsgpack,hzstudio ]
+              os: [ darwin,linux,windows ] # survey v2 doesn't support: plan9, openbsd
+
+            101-progressbar-example-tasks:
+              dir: ./examples/tasks
+              gen: false
+              install: false
+              cgo: false
+              keep-workdir: true
+              use-workdir:
+              tags: [ nomsgpack,hzstudio ]
+              os: [ darwin,linux,windows ] # survey v2 doesn't support: plan9, openbsd
+
+            101-progressbar-example-spinners:
+              dir: ./examples/spinners
+              gen: false
+              install: false
+              cgo: false
+              keep-workdir: true
+              use-workdir:
+              tags: [ nomsgpack,hzstudio ]
+              os: [ darwin,linux,windows ] # survey v2 doesn't support: plan9, openbsd
+
+            101-progressbar-example-multibar:
+              dir: ./examples/multibar
+              gen: false
+              install: false
+              cgo: false
+              keep-workdir: true
+              use-workdir:
+              tags: [ nomsgpack,hzstudio ]
+              os: [ darwin,linux,windows ] # survey v2 doesn't support: plan9, openbsd
+
+            102-progressbar-example-multibar-spinner:
+              dir: ./examples/multibar_spinner
+              gen: false
+              install: false
+              cgo: false
+              keep-workdir: true
+              use-workdir:
+              tags: [ nomsgpack,hzstudio ]
+              os: [ darwin,linux,windows ] # survey v2 doesn't support: plan9, openbsd
+
+            109-progressbar-example-simple:
+              dir: ./examples/simple
+              gen: false
+              install: false
+              cgo: false
+              keep-workdir: true
+              use-workdir:
+              tags: [ nomsgpack,hzstudio ]
+              os: [ darwin,linux,windows,plan9,openbsd ]
+
+
+
+            # first part of a project key is treated as sorting key.
+            003-generic:
+              dir: ./study/generic
+              #gocmd: go1.18.1
+              os: [ darwin ]
+              arch: [ amd64 ]
+              version:   # if git revision cannot be retrieved, or just a fixed version be set here
+              disable: true
+
+
+            001-bgo: # <- form: sortingKey-projectName
+              name:      # <- app name
+              dir: tools/bgo
+              gen: false
+              install: true
+              cgo: true
+              keep-workdir: false   # true: don't switch workdir to 'dir'
+              use-workdir:          # specify a special workdir
+              extends:
+                - pkg: "github.com/hedzr/cmdr/conf"
+                  values:
+                    AppName: "{{.AppName}}"
+                    Version: "{{.Version}}"
+                    Buildstamp: "{{.BuildTime}}" # or shell it
+                    Githash: "`git describe --tags --abbrev=16`"
+                    # Githash: "{{.GitRevision}}"  # or shell it: "`git describe --tags --abbrev=9`"
+                    GoVersion: "{{.GoVersion}}"  # or shell it
+                    ServerID: "{{.randomString}}"
+              post-action: |
+                if [[ "$OSTYPE" == *{{.OS}}* && "{{.Info.GOARCH}}" == {{.ARCH}} ]]; then
+                  cp {{.Output.Path}} $HOME/go/bin/
+                fi
+                echo "OS: $OSTYPE, Arch: {{.Info.GOARCH}}"
+
+              # ldflags: [ "-s", "-w" ] # default ldflags is to get the smaller build for releasing
+              # asmflags: []
+              # gcflags: []
+              # tags: []
+              #
+              # gocmd: $HOME/go/go1.18beta1/bin/go1.18beta1
+              #
+              # debug: false            # true to produce a larger build with debug info
+              # disable-result: false   # no ll (Shell list) building result
+              #
+              disabled: true            # disable this building target temporarily if necessary
+              #
+              # os: [ "linux","darwin","windows" ]
+              # arch: [ "amd64" ]
+              # for: [ "linux/riscv64" ]
+              #
+              # pre-action:
+              # pre-action-file:
+              # post-action:
+              # post-action-file:
+
+            002-jsonx:
+              dir: tools/jsonx
+              gen:
+              disabled: true
+
+
+
