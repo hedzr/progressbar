@@ -4,7 +4,7 @@
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/hedzr/progressbar.svg?label=release)](https://github.com/hedzr/progressbar/releases)
 [![go.dev](https://img.shields.io/badge/go-dev-green)](https://pkg.go.dev/github.com/hedzr/progressbar)
 
-An asynchronous, multiple console/terminal progressbar widget. The main look of default stepper is:
+An asynchronous, multitask console/terminal progressbar widget. The main look of default stepper is:
 
 ![stepper-0](https://github.com/hzimg/blog-pics/blob/master/Picsee/stepper-0.mov.webp?raw=true)
 
