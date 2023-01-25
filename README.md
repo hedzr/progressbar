@@ -10,6 +10,11 @@ An asynchronous, multiple console/terminal progressbar widget. The main look of 
 
 Its original sample is pip installing ui.
 
+## History
+
+- v1.0.0
+  - first release
+
 ## Guide
 
 `progressbar` provides a friendly interface to make things simple,
