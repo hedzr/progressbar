@@ -5,7 +5,6 @@ package progressbar
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"strings"
 	"sync/atomic"
@@ -17,6 +16,7 @@ import (
 
 func MaxSpinners() int { return len(spinners) }
 
+// The following spinner templates are modified from https://github.com/schollz/progressbar
 var spinners = map[int]*spinner{
 	0:  {chars: []string{"←", "↖", "↑", "↗", "→", "↘", "↓", "↙"}},
 	1:  {chars: []string{"▁", "▃", "▄", "▅", "▆", "▇", "█", "▇", "▆", "▅", "▄", "▃", "▁"}},
@@ -99,16 +99,15 @@ var spinners = map[int]*spinner{
 }
 
 type spinner struct {
-	chars  []string
-	onDraw func(pb *pbar)
-	gauge  int32
-
-	barWidth        int
-	indentL         string
-	prepend, append string
-
-	schema string
-	tmpl   *template.Template
+	onDraw   func(pb *pbar)
+	tmpl     *template.Template
+	indentL  string
+	prepend  string
+	append   string
+	schema   string
+	chars    []string
+	barWidth int
+	gauge    int32
 }
 
 func (s *spinner) SetSchema(schema string) {
@@ -122,7 +121,7 @@ func (s *spinner) SetWidth(w int) {
 func (s *spinner) init() {
 	if s.tmpl == nil {
 		if s.schema == "" {
-			s.schema = schema
+			s.schema = defaultSchema
 		}
 		if s.barWidth == 0 {
 			s.barWidth = barWidth
@@ -168,12 +167,12 @@ func (s *spinner) Bytes(pb *pbar) []byte {
 		Indent:  s.indentL,
 		Prepend: s.prepend,
 		Bar:     s.buildBar(pb, cnt, s.barWidth, false),
-		Percent: fmt.Sprintf("%.1f%%", percent),
-		Title:   pb.title,
-		Current: fmt.Sprintf("%v%v", read, suffix),
-		Total:   fmt.Sprintf("%v%v", total, suffix1),
-		Speed:   fmt.Sprintf("%v%v/s", speed, suffix2),
-		Elapsed: fmt.Sprintf("%v", dur),
+		Percent: fltfmt(percent), // fmt.Sprintf("%.1f%%", percent),
+		Title:   pb.title,        //
+		Current: read + suffix,   // fmt.Sprintf("%v%v", read, suffix),
+		Total:   total + suffix1, // fmt.Sprintf("%v%v", total, suffix1),
+		Speed:   speed + suffix2, // fmt.Sprintf("%v%v/s", speed, suffix2),
+		Elapsed: durfmt(dur),     // fmt.Sprintf("%v", dur), //nolint:gocritic
 		Append:  s.append,
 	}
 

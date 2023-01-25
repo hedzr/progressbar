@@ -4,6 +4,7 @@
 package progressbar
 
 import (
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -17,9 +18,9 @@ func NewDownloadTasks(bar MultiPB) *DownloadTasks {
 }
 
 type DownloadTasks struct {
-	wg    sync.WaitGroup
 	bar   MultiPB
 	tasks []*aTask
+	wg    sync.WaitGroup
 }
 
 func (s *DownloadTasks) Close() {
@@ -88,6 +89,7 @@ func (s *aTask) Close() {
 		}
 	}
 	if s.wg != nil {
+		atomic.AddInt32(&s.doneCount, 1)
 		s.wg.Done()
 	}
 }
@@ -114,7 +116,7 @@ func (s *aTask) onCompleted(bar PB) {
 func (s *aTask) onStart(bar PB) {
 	if s.req == nil {
 		var err error
-		s.req, err = http.NewRequest("GET", s.url, nil)
+		s.req, err = http.NewRequest("GET", s.url, nil) //nolint:gocritic
 		if err != nil {
 			log.Printf("Error: %v", err)
 		}
@@ -140,7 +142,7 @@ func (s *aTask) doWorker(bar PB, exitCh <-chan struct{}) {
 
 	for {
 		n, err := s.resp.Body.Read(s.buf)
-		if err != nil && err != io.EOF {
+		if err != nil && !errors.Is(err, io.EOF) {
 			log.Printf("Error: %v", err)
 			return
 		}
@@ -148,15 +150,15 @@ func (s *aTask) doWorker(bar PB, exitCh <-chan struct{}) {
 			break
 		}
 
+		if _, err = s.w.Write(s.buf[:n]); err != nil {
+			log.Printf("Error: %v", err)
+			return
+		}
+
 		select {
 		case <-exitCh:
 			return
 		default:
-		}
-
-		if _, err = s.w.Write(s.buf[:n]); err != nil {
-			log.Printf("Error: %v", err)
-			return
 		}
 
 		// time.Sleep(time.Millisecond * 100)

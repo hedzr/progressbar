@@ -14,17 +14,17 @@ func NewTasks(bar MultiPB) *Tasks {
 }
 
 type Tasks struct {
-	wg    sync.WaitGroup
 	bar   MultiPB
 	tasks []*aTask
+	wg    sync.WaitGroup
 }
 
 type taskOptions struct {
-	title      string
-	barOptions []Opt
 	onStart    OnStart
 	onStop     OnCompleted
 	onWork     Worker
+	title      string
+	barOptions []Opt
 }
 
 type TaskOpt func(s *taskOptions)
@@ -78,7 +78,6 @@ func (s *Tasks) Add(opts ...TaskOpt) *Tasks {
 		onCompletedProc: to.onStop,
 		onStepProc:      to.onWork,
 	}
-	task.wg = &s.wg
 
 	var o []Opt
 	o = append(o,
@@ -103,19 +102,19 @@ func (s *Tasks) Wait() {
 }
 
 type sTask struct {
-	wg *sync.WaitGroup
-	w  io.Writer
-
-	buf []byte
-
-	doneCount int32
-
+	w               io.Writer
+	wg              *sync.WaitGroup
 	onStartProc     OnStart
 	onCompletedProc OnCompleted
 	onStepProc      Worker
+	buf             []byte
+	doneCount       int32
 }
 
 func (s *sTask) Close() {
+	if wg := s.wg; wg != nil {
+		wg.Done()
+	}
 }
 
 // type Stepper interface {

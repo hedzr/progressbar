@@ -5,7 +5,6 @@ package progressbar
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"math"
 	"strings"
@@ -26,23 +25,29 @@ type barT interface {
 }
 
 var steppers = map[int]*stepper{
+	// 0: python installer style
 	0: {unread: "━", read: "━", leftHalf: "╺", rightHalf: "╸", clrBase: tool.FgDarkGray, clrHighlight: tool.FgYellow},
+
 	// "▏", "▎", "▍", "▌", "▋", "▊", "▉"
+
 	1: {unread: "▒", read: "▉", leftHalf: "▒", rightHalf: "▌", clrBase: tool.FgDarkGray, clrHighlight: tool.FgLightCyan},
 	2: {unread: "-", read: "+", leftHalf: "+", rightHalf: "+", clrBase: tool.FgDarkGray, clrHighlight: tool.FgYellow},
 	3: {unread: "&nbsp;", read: "=", leftHalf: ">", rightHalf: ">", clrBase: tool.FgDarkGray, clrHighlight: tool.FgYellow},
 }
 
 type stepper struct {
-	unread, read, leftHalf, rightHalf string
-	clrBase, clrHighlight             int
-
-	barWidth        int
-	indentL         string
-	prepend, append string
-
-	schema string
-	tmpl   *template.Template
+	tmpl         *template.Template
+	unread       string
+	read         string
+	leftHalf     string
+	rightHalf    string
+	indentL      string
+	prepend      string
+	append       string
+	schema       string
+	clrBase      int
+	clrHighlight int
+	barWidth     int
 }
 
 func (s *stepper) SetSchema(schema string) {
@@ -56,7 +61,7 @@ func (s *stepper) SetWidth(w int) {
 func (s *stepper) init() {
 	if s.tmpl == nil {
 		if s.schema == "" {
-			s.schema = schema
+			s.schema = defaultSchema
 		}
 		if s.barWidth == 0 {
 			s.barWidth = barWidth
@@ -97,19 +102,6 @@ func (s *stepper) buildBar(pb *pbar, pos, barWidth int, half bool) string {
 // 	return sb.String()
 // }
 
-type schemaData struct {
-	Indent  string
-	Prepend string
-	Bar     string
-	Percent string
-	Title   string
-	Current string
-	Total   string
-	Elapsed string
-	Speed   string
-	Append  string
-}
-
 func (s *stepper) String(pb *pbar) string {
 	return string(s.Bytes(pb))
 }
@@ -137,12 +129,12 @@ func (s *stepper) Bytes(pb *pbar) []byte {
 		Indent:  s.indentL,
 		Prepend: s.prepend,
 		Bar:     s.buildBar(pb, pos, s.barWidth, half),
-		Percent: fmt.Sprintf("%.1f%%", percent),
-		Title:   pb.title,
-		Current: fmt.Sprintf("%v%v", read, suffix),
-		Total:   fmt.Sprintf("%v%v", total, suffix1),
-		Speed:   fmt.Sprintf("%v%v/s", speed, suffix2),
-		Elapsed: fmt.Sprintf("%v", dur),
+		Percent: fltfmt(percent), // fmt.Sprintf("%.1f%%", percent),
+		Title:   pb.title,        //
+		Current: read + suffix,   // fmt.Sprintf("%v%v", read, suffix),
+		Total:   total + suffix1, // fmt.Sprintf("%v%v", total, suffix1),
+		Speed:   speed + suffix2, // fmt.Sprintf("%v%v/s", speed, suffix2),
+		Elapsed: durfmt(dur),     // fmt.Sprintf("%v", dur), //nolint:gocritic
 		Append:  s.append,
 	}
 
@@ -159,29 +151,47 @@ func (s *stepper) Bytes(pb *pbar) []byte {
 	return []byte(str)
 }
 
-func humanizeBytes(s float64) (string, string) {
+func humanizeBytes(s float64) (value, suffix string) {
 	sizes := []string{" B", " kB", " MB", " GB", " TB", " PB", " EB"}
 	base := 1024.0
 	if s < 10 {
-		return fmt.Sprintf("%2.0f", s), "B"
-	}
-	e := math.Floor(logn(s, base))
-	suffix := sizes[int(e)]
-	val := math.Floor(s/math.Pow(base, e)*10+0.5) / 10
-	f := "%.0f"
-	if val < 10 {
-		f = "%.1f"
+		// return fmt.Sprintf("%2.0f", s), "B"
+		return fltfmt(s), "B"
 	}
 
-	return fmt.Sprintf(f, val), suffix
+	e := math.Floor(logn(s, base))
+	suffix = sizes[int(e)]
+	val := math.Floor(s/math.Pow(base, e)*10+0.5) / 10
+
+	// f := "%.0f"
+	// if val < 10 {
+	// 	f = "%.1f"
+	// }
+	// value = fmt.Sprintf(f, val)
+
+	value = fltfmt(val)
+	return
 }
 
 func logn(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
 }
 
+type schemaData struct {
+	Indent  string
+	Prepend string
+	Bar     string
+	Percent string
+	Title   string
+	Current string
+	Total   string
+	Elapsed string
+	Speed   string
+	Append  string
+}
+
 const (
-	schema      = `{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | <font color="green">{{.Title}}</font> | {{.Current}}/{{.Total}} {{.Speed}} {{.Elapsed}} {{.Append}}`
-	barWidth    = 30
-	indentChars = `    `
+	defaultSchema = `{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | <font color="green">{{.Title}}</font> | {{.Current}}/{{.Total}} {{.Speed}} {{.Elapsed}} {{.Append}}`
+	barWidth      = 30
+	indentChars   = `    `
 )
