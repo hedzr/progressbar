@@ -82,21 +82,15 @@ jobs:
         with:
           parallel-finished: true
 
-  build-assets-and-release:
-    strategy:
-      matrix:
-        go-version: [ 1.19.x ]
-        #os: [ubuntu-latest, macos-latest, windows-latest]
-        os: [ ubuntu-latest ]
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
+  release-build:
+    runs-on: ubuntu-latest
     needs: coverage
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: 1.19.x
       - name: Checkout code
         uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -107,12 +101,12 @@ jobs:
             ${{ runner.os }}-go-
       - name: Build linux binaries
         run: |
-          sudo apt-get install -y upx-ucl
+          # sudo apt-get install -y upx-ucl
           for GOOS in linux; do
           for GOARCH in amd64; do
           for app in multibar multibar_spinner simple spinners steppers tasks; do
             go build -v -ldflags "-s -w" -gcflags=all='-l -B' -trimpath -o ./bin/$app ./examples/$app/...
-            upx -5 --brute ./bin/$app
+            # upx -5 --brute ./bin/$app
             gzip ./bin/$app
           done
           done
@@ -130,12 +124,20 @@ jobs:
 #          files: |
 #            ./bin/*.gz
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@master
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: binaries
+          path: bin/
+          if-no-files-found: warn
+
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: bin/*
+          file: ./bin/*
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true
