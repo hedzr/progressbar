@@ -6,6 +6,8 @@ tools/bgo/go.work
 go.work
 .local/
 
+*.py
+*.pyc
 *.S
 small
 ./small*

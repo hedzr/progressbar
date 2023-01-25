@@ -1,0 +1,4 @@
+{
+    "python.formatting.provider": "black",
+    "go.formatting.provider": "prettier"
+}

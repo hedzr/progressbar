@@ -23,6 +23,9 @@ app:
 
       ldflags: [ "-s", "-w" ]
 
+      reduce: true
+      upx: { enable: false, params1: ['-9','--brute'] }
+
       # build scopes: auto, full, short
       #
       #    bgo --auto will scan the .bgo.yml in workdir and all sub-folders and apply its
@@ -67,6 +70,9 @@ app:
               use-workdir:          # specify a special workdir
               tags: [ nomsgpack,hzstudio ]
 
+
+            # 100-progressbar-example-blank:
+            #   dir: ./examples/blank
 
             100-progressbar-example-steppers:
               dir: ./examples/steppers
@@ -123,7 +129,7 @@ app:
               gen: false
               install: false
               cgo: false
-              keep-workdir: true
+              pwdkeep-workdir: true
               use-workdir:
               tags: [ nomsgpack,hzstudio ]
               os: [ darwin,linux,windows,plan9,openbsd ]
