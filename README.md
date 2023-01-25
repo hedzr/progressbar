@@ -10,6 +10,8 @@ An asynchronous, multitask console/terminal progressbar widget. The main look of
 
 Its original sample is pip installing ui.
 
+> To simplify our maintaining jobs, this repo was been tested under go1.18+.
+
 ## History
 
 - v1.0.0
@@ -27,8 +29,6 @@ be a bar (called `Stepper`) or a spinner.
 A demo of `multibar` looks like:
 
 ![anim](https://github.com/hzimg/blog-pics/blob/master/Picsee/Screen%20Recording%202023-01-20%20at%2018.52.29.webp?raw=true)
-
-> To simplify our maintaining jobs, this repo was been tested under go1.18+.
 
 ### What's Steppers
 
@@ -65,7 +65,7 @@ func forAllSpinners() {
 				progressbar.WithBarSpinner(i),
 				progressbar.WithBarUpperBound(100),
 				progressbar.WithBarWidth(8),
-				progressbar.WithBarTextSchema(schema),
+				// progressbar.WithBarTextSchema(schema),
 			),
 			progressbar.WithTaskAddBarTitle(fmt.Sprintf("Task %v", i)),
 			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) {
@@ -88,7 +88,7 @@ To have a see to run:
 go run ./examples/tasks
 ```
 
-#### Write Your Own Rasks With `MultiPB` and `PB`
+#### Write Your Own Tasks With `MultiPB` and `PB`
 
 The above sample shows you how our `Task` was been encouraged by
 `progressbar.WithTaskAddOnTaskProgressing`, `WithTaskAddOnTaskInitializing`
