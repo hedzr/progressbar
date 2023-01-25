@@ -5,7 +5,7 @@ package tool
 
 import (
 	"bufio"
-	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -112,32 +112,43 @@ func (c *colorPrintTranslator) Translate(s string, initialFg int) string {
 
 func (c *colorPrintTranslator) resetColors(sb *strings.Builder, states []int) func() {
 	return func() {
-		var st string
-		st = "\x1b[0m"
-		(*sb).WriteString(st)
+		sb.WriteString(aecResetColors)
 		if len(states) > 0 {
-			st = fmt.Sprintf("\x1b[%dm", states[len(states)-1])
-			(*sb).WriteString(st)
+			sb.Write([]byte(aecPrefix))
+			sb.Write([]byte(strconv.Itoa(states[len(states)-1])))
+			sb.WriteRune(aecSuffix)
+			// st = fmt.Sprintf("\x1b[%dm", states[len(states)-1])
+			// (*sb).WriteString(st)
 		}
 	}
 }
 
+const aecResetColors = "\x1b[0m"
+const aecPrefix = "\x1b[0m"
+const aecSuffix = 'm'
+
 func (c *colorPrintTranslator) Colorize(s string, clr int) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("\x1b[%dm", clr))
+	sb.Write([]byte(aecPrefix))
+	sb.WriteString(strconv.Itoa(clr))
+	sb.WriteRune(aecSuffix)
+	// sb.WriteString(fmt.Sprintf("\x1b[%dm", clr))
 	sb.WriteString(s)
-	const stReset = "\x1b[0m"
-	sb.WriteString(stReset)
+	sb.WriteString(aecResetColors)
 	return sb.String()
 }
 
 func (c *colorPrintTranslator) colorize(sb *strings.Builder, states []int, walker *func(node *html.Node, level int)) func(node *html.Node, clr int, representation string, level int) {
 	return func(node *html.Node, clr int, representation string, level int) {
+		sb.Write([]byte(aecPrefix))
 		if representation != "" {
-			(*sb).WriteString(fmt.Sprintf("\x1b[%sm", representation))
+			sb.WriteString(representation)
+			// (*sb).WriteString(fmt.Sprintf("\x1b[%sm", representation))
 		} else {
-			(*sb).WriteString(fmt.Sprintf("\x1b[%dm", clr))
+			sb.WriteString(strconv.Itoa(clr))
+			// (*sb).WriteString(fmt.Sprintf("\x1b[%dm", clr))
 		}
+		sb.WriteRune(aecSuffix)
 		states = append(states, clr)
 		for child := node.FirstChild; child != nil; child = child.NextSibling {
 			(*walker)(child, level+1)

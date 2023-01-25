@@ -21,3 +21,7 @@ func Up(n int) {
 // Left moves cursor left by n
 func Left(n int) {
 }
+
+func safeWrite(b []byte) (n int, e error) {
+	return os.Stdout.Write(b)
+}

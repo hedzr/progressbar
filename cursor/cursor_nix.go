@@ -7,32 +7,51 @@
 package cursor
 
 import (
-	"fmt"
 	"io"
 	"os"
+	"strconv"
 )
-
-// Out is the default output writer for the Writer
-var Out = io.Writer(os.Stdout)
 
 // Up moves cursor up by n
 func Up(n int) {
-	_, _ = fmt.Fprintf(Out, "%s[%dA", escape, n)
+	var bb = []byte(aecHideCursor)
+	safeWrite(bb[0:2])
+	var ss = strconv.Itoa(n)
+	safeWrite([]byte(ss))
+	var A = []byte{'A'}
+	safeWrite(A)
+	// _, _ = fmt.Fprintf(Out, "%s[%dA", escape, n)
 }
 
 // Left moves cursor left by n
 func Left(n int) {
-	_, _ = fmt.Fprintf(Out, "%s[%dD", escape, n)
+	var bb = []byte(aecHideCursor)
+	safeWrite(bb[0:2])
+	var ss = strconv.Itoa(n)
+	safeWrite([]byte(ss))
+	var D = []byte{'D'}
+	safeWrite(D)
+	// _, _ = fmt.Fprintf(Out, "%s[%dD", escape, n)
 }
 
 // showCursor shows the cursor.
 func showCursor() {
-	_, _ = fmt.Fprintf(Out, "%s[?25h", escape)
+	safeWrite([]byte(aecHideCursor))
 }
 
 // hideCursor hides the cursor.
 func hideCursor() {
-	_, _ = fmt.Fprintf(Out, "%s[?25l", escape)
+	safeWrite([]byte(aecHideCursor))
 }
 
-const escape = "\x1b"
+func safeWrite(b []byte) (n int, e error) {
+	return Out.Write(b)
+}
+
+// Out is the default output writer for the Writer
+var Out io.Writer = os.Stdout
+
+var escape = []byte{'\x1b'}
+
+const aecHideCursor = "\x1b[?25l"
+const aecShowCursor = "\x1b[?25h"

@@ -7,6 +7,7 @@
 package cursor
 
 import (
+	"os"
 	"syscall"
 	"unsafe"
 )
@@ -150,4 +151,8 @@ func Left(n int) {
 
 	x := consoleInfo.CursorPosition.X - SHORT(n)
 	setConsoleCursorPosition(stdoutHandle, COORD{X: x, Y: consoleInfo.CursorPosition.Y})
+}
+
+func safeWrite(b []byte) (n int, e error) {
+	return os.Stdout.Write(b)
 }
