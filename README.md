@@ -180,6 +180,11 @@ Simple html tags (b, i, u, font, strong, em, cite, mark, del, kbd, code, html, h
 
 The API to change a spinner's display layout is same to above.
 
+## Using `cursor` lib
+
+There is a tiny terminal cursor operating subpackage, `cursor`. It's cross-platforms to `show and hide cursor`, `move cursor up, left` with/out wipe out the characters. Notes that is not a `TUI` cursor controlling library.
+
+
 ## Tips
 
 To review all possible looks, try our samples:
@@ -200,3 +205,7 @@ go run ./examples/spinners 0
 
 This repo is inspired from python3 install tui, and
 [schollz/progressbar](https://github.com/schollz/progressbar), and more tui progress bars.
+
+## LICENSE
+
+Apache 2.0
