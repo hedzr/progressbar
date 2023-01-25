@@ -3,6 +3,8 @@
 
 package progressbar
 
+import "io"
+
 type Opt func(pb *pbar)
 
 func WithBarSpinner(whichOne int) Opt {
@@ -35,8 +37,7 @@ func WithBarWidth(w int) Opt {
 
 // WithBarTextSchema allows cha
 //
-//     "{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | {{.Title}} | {{.Current}}/{{.Total}} {{.Speed}} {{.Elapsed}} {{.Append}}"
-//
+//	"{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | {{.Title}} | {{.Current}}/{{.Total}} {{.Speed}} {{.Elapsed}} {{.Append}}"
 func WithBarTextSchema(schema string) Opt {
 	return func(pb *pbar) {
 		pb.stepper.SetSchema(schema)
@@ -58,5 +59,22 @@ func WithBarOnCompleted(cb OnCompleted) Opt {
 func WithBarOnStart(cb OnStart) Opt {
 	return func(pb *pbar) {
 		pb.onStart = cb
+	}
+}
+
+type (
+	OnDone func(mpb MultiPB)
+	MOpt   func(mpb *mpbar)
+)
+
+func WithOnDone(cb OnDone) MOpt {
+	return func(mpb *mpbar) {
+		mpb.onDone = cb
+	}
+}
+
+func WithOutput(out io.Writer) MOpt {
+	return func(mpb *mpbar) {
+		mpb.out = out
 	}
 }
