@@ -23,6 +23,8 @@ A demo of `multibar` looks like:
 
 ![anim](https://github.com/hzimg/blog-pics/blob/master/Picsee/Screen%20Recording%202023-01-20%20at%2018.52.29.webp?raw=true)
 
+> To simplify our maintaining jobs, this repo was been tested under go1.18+.
+
 ### What's Steppers
 
 Stepper style like a horizontal bar with progressing tick.
