@@ -48,23 +48,26 @@ type (
 )
 
 type pbar struct {
-	min, max  int64
-	title     string
-	startTime time.Time
 	stopTime  time.Time
+	startTime time.Time
 
 	stepper barT
-
-	read       int64
-	row        int
-	muPainting sync.Mutex
-	completed  bool
-
-	mpbar MultiPB
+	mpbar   MultiPB
 
 	worker  Worker
 	onComp  OnCompleted
 	onStart OnStart
+
+	title string
+
+	read int64
+	min  int64
+	max  int64
+	row  int
+
+	muPainting sync.Mutex
+
+	completed bool
 }
 
 func (pb *pbar) Close() {

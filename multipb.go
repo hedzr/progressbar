@@ -4,7 +4,6 @@
 package progressbar
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -13,31 +12,15 @@ import (
 	"github.com/hedzr/progressbar/cursor"
 )
 
-func Add(maxBytes int64, title string, opts ...Opt) MultiPB {
-	defaultMPB.Add(maxBytes, title, opts...)
-	return defaultMPB
-}
+type MultiPB interface {
+	io.Writer
+	Close()
 
-func New(opts ...MOpt) MultiPB {
-	bar := multiBar(opts...)
-	return bar
-}
+	Add(maxBytes int64, title string, opts ...Opt) (index int)
+	Remove(index int)
 
-type (
-	OnDone func(mpb MultiPB)
-	MOpt   func(mpb *mpbar)
-)
-
-func WithOnDone(cb OnDone) MOpt {
-	return func(mpb *mpbar) {
-		mpb.onDone = cb
-	}
-}
-
-func WithOutput(out io.Writer) MOpt {
-	return func(mpb *mpbar) {
-		mpb.out = out
-	}
+	Redraw()
+	SignalExit() <-chan struct{}
 }
 
 func multiBar(opts ...MOpt) *mpbar {
@@ -57,28 +40,19 @@ func multiBar(opts ...MOpt) *mpbar {
 
 var defaultMPB = multiBar()
 
-type MultiPB interface {
-	io.Writer
-	Close()
-
-	Add(maxBytes int64, title string, opts ...Opt) (index int)
-	Remove(index int)
-
-	Redraw()
-	SignalExit() <-chan struct{}
-}
-
 type mpbar struct {
-	// tui       *tuilive.Writer
 	out       io.Writer
-	bars      []*pbar
-	rw        sync.RWMutex
-	dirty     int32
-	lines     int32
-	closed    int32
 	sigRedraw chan struct{}
 	sigExit   chan struct{}
 	onDone    OnDone
+
+	bars []*pbar
+
+	rw sync.RWMutex
+
+	dirty  int32
+	lines  int32
+	closed int32
 }
 
 func (mpb *mpbar) Close() {
@@ -111,7 +85,7 @@ func (mpb *mpbar) Redraw() {
 func (mpb *mpbar) SignalExit() <-chan struct{} { return mpb.sigExit }
 
 func (mpb *mpbar) Add(maxBytes int64, title string, opts ...Opt) (index int) {
-	pb := defaultBytes(mpb, maxBytes, title, opts...).(*pbar)
+	pb := defaultBytes(mpb, maxBytes, title, opts...).(*pbar) //nolint:errcheck //the call is always ok
 
 	mpb.rw.Lock()
 	defer mpb.rw.Unlock()
@@ -151,7 +125,7 @@ func (mpb *mpbar) redrawNow() {
 
 	defer mpb.rw.RUnlock()
 
-	var done bool = true
+	var done = true
 	var cnt int
 
 	if !atomic.CompareAndSwapInt32(&mpb.dirty, 0, 1) {
@@ -161,7 +135,10 @@ func (mpb *mpbar) redrawNow() {
 
 	for _, pb := range mpb.bars {
 		str := pb.String()
-		_, _ = fmt.Fprintf(mpb.out, "%s%s\n", indentChars, str)
+		mpb.out.Write([]byte(indentChars))
+		mpb.out.Write([]byte(str))
+		mpb.out.Write([]byte("\n"))
+		// _, _ = fmt.Fprintf(mpb.out, "%s%s\n", indentChars, str)
 		if !pb.completed {
 			done = false
 			cnt++
