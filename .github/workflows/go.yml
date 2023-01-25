@@ -74,7 +74,7 @@ jobs:
 
       - name: Build linux binaries
         run: |
-          apt install -y upx-ucl
+          sudo apt-get install -y upx-ucl
           for GOOS in linux; do
           for GOARCH in amd64; do
           for app in multibar multibar_spinner simple spinners steppers tasks; do
