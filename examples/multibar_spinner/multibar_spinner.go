@@ -4,12 +4,12 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/hedzr/progressbar"
+	"github.com/hedzr/progressbar/cursor"
 )
 
 var whichSpinner = 22
@@ -19,8 +19,10 @@ func doEachGroup(group []string) {
 	defer tasks.Close()
 
 	for _, ver := range group {
-		url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
-		fn := fmt.Sprintf("go%v.src.tar.gz", ver)
+		url := "https://dl.google.com/go/go" + ver + ".src.tar.gz"
+		fn := "go" + ver + ".src.tar.gz"
+		// url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+		// fn := fmt.Sprintf("go%v.src.tar.gz", ver)
 
 		tasks.Add(url, fn,
 			progressbar.WithBarSpinner(whichSpinner),
@@ -33,8 +35,8 @@ func doEachGroup(group []string) {
 }
 
 func main() {
-	// cursor.Hide()
-	// defer cursor.Show()
+	cursor.Hide()
+	defer cursor.Show()
 
 	if len(os.Args) > 1 {
 		i, err := strconv.ParseInt(os.Args[1], 10, 64)
@@ -42,6 +44,7 @@ func main() {
 			whichSpinner = int(i)
 		}
 	}
+
 	for _, group := range [][]string{
 		{"1.14.2", "1.15.1"},
 		{"1.16.1"},

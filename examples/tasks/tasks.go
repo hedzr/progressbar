@@ -4,13 +4,13 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/hedzr/progressbar"
+	"github.com/hedzr/progressbar/cursor"
 )
 
 const schema = `{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | <b><font color="green">{{.Title}}</font></b> {{.Append}}`
@@ -24,15 +24,16 @@ func forAllSpinners() {
 	for i := whichSpinner; i < whichSpinner+5; i++ {
 		tasks.Add(
 			progressbar.WithTaskAddBarOptions(
-				progressbar.WithBarSpinner(i),
 				progressbar.WithBarUpperBound(100),
-				progressbar.WithBarWidth(8),
-				progressbar.WithBarTextSchema(schema),
+				// progressbar.WithBarSpinner(i),
+				// progressbar.WithBarWidth(8),
+				progressbar.WithBarStepper(0),
+				progressbar.WithBarTextSchema(schema), // change the bar layout here
 			),
-			progressbar.WithTaskAddBarTitle(fmt.Sprintf("Task %v", i)),
+			progressbar.WithTaskAddBarTitle("Task "+strconv.Itoa(i)), // fmt.Sprintf("Task %v", i)),
 			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) {
 				for max, ix := bar.UpperBound(), int64(0); ix < max; ix++ {
-					ms := time.Duration(200 + rand.Intn(1800))
+					ms := time.Duration(20 + rand.Intn(500)) //nolint:gosec //just a demo
 					time.Sleep(time.Millisecond * ms)
 					bar.Step(1)
 				}
@@ -45,8 +46,8 @@ func forAllSpinners() {
 }
 
 func main() {
-	// cursor.Hide()
-	// defer cursor.Show()
+	cursor.Hide()
+	defer cursor.Show()
 
 	if len(os.Args) > 1 {
 		i, err := strconv.ParseInt(os.Args[1], 10, 64)

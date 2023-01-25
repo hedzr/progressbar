@@ -4,7 +4,7 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -12,25 +12,26 @@ import (
 	"sync"
 
 	"github.com/hedzr/progressbar"
+	"github.com/hedzr/progressbar/cursor"
 )
 
 func main() {
-	// cursor.Hide()
-	// defer cursor.Show()
+	cursor.Hide()
+	defer cursor.Show()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	_, _ = fmt.Fprintln(progressbar.New(), "Starting....")
+	// _, _ = fmt.Fprintln(progressbar.New(), "Starting....")
 
-	req, _ := http.NewRequest("GET", "https://dl.google.com/go/go1.14.2.src.tar.gz", nil)
+	req, _ := http.NewRequest("GET", "https://dl.google.com/go/go1.14.2.src.tar.gz", nil) //nolint:gocritic
 	resp, _ := http.DefaultClient.Do(req)
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
 			log.Printf("Error: %v", err)
 		}
-	}(resp.Body) //nolint:govet
+	}(resp.Body) //nolint:govet //just a demo
 
 	f, _ := os.OpenFile("go1.14.2.src.tar.gz", os.O_CREATE|os.O_WRONLY, 0o644)
 	defer func(f *os.File) {
@@ -57,7 +58,7 @@ func main() {
 		progressbar.WithBarWorker(func(bar progressbar.PB, exitCh <-chan struct{}) {
 			for {
 				n, err := resp.Body.Read(buf)
-				if err != nil && err != io.EOF {
+				if err != nil && !errors.Is(err, io.EOF) {
 					return
 				}
 				if n == 0 {
