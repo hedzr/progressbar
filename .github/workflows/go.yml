@@ -79,7 +79,7 @@ jobs:
           for GOARCH in amd64; do
           for app in multibar multibar_spinner simple spinners steppers tasks; do
             go build -v -ldflags "-s -w" -gcflags=all='-l -B' -trimpath -o ./bin/$app ./examples/$app/...
-            upx -5 --brute ./bin/app
+            upx -5 --brute ./bin/$app
             gzip ./bin/$app
           done
           done
