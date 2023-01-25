@@ -83,8 +83,9 @@ jobs:
           parallel-finished: true
 
   release-build:
-    runs-on: ubuntu-latest
+    name: Release Builds
     needs: coverage
+    runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Install Go
@@ -124,16 +125,16 @@ jobs:
 #          files: |
 #            ./bin/*.gz
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@master
-        if: startsWith(github.ref, 'refs/tags/v')
-        with:
-          name: binaries
-          path: bin/
-          if-no-files-found: warn
+#      - name: Upload artifacts
+#        uses: actions/upload-artifact@master
+#        if: startsWith(github.ref, 'refs/tags/v')
+#        with:
+#          name: binaries
+#          path: bin/
+#          if-no-files-found: warn
 
       - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@2.4.0
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -141,6 +142,7 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true
+          #prerelease: false
           #body:
 
 
