@@ -10,7 +10,7 @@ An asynchronous, multitask console/terminal progressbar widget. The main look of
 
 Its original sample is pip installing ui.
 
-> To simplify our maintaining jobs, this repo was been tested under go1.18+.
+> To simplify our maintaining jobs, this repo was only tested at go1.18+.
 
 ## History
 
@@ -22,7 +22,7 @@ Its original sample is pip installing ui.
 `progressbar` provides a friendly interface to make things simple,
 for creating the tasks with a terminal progressbar.
 
-It assumes you're running several asynchronous tasks with
+It assumes you're commonly running several asynchronous tasks with
 rich terminal UI progressing display. The progressing UI can
 be a bar (called `Stepper`) or a spinner.
 
@@ -48,11 +48,12 @@ go run ./examples/spinners
 go run ./examples/spinners 0 # can be 0..75 (=progressbar.MaxSpinners())
 ```
 
-### Tasks & With Multiple groups
+### Tasks & With groups
 
 #### Using Tasks
 
-By using `progressbar.NewTasks()`, you can add new task with a bundled progressbar.
+By using `progressbar.NewTasks()`, you can add new task easily
+with a bundled progressbar.
 
 ```go
 func forAllSpinners() {
@@ -78,7 +79,7 @@ func forAllSpinners() {
 		)
 	}
 
-	tasks.Wait()
+	tasks.Wait() // start waiting for all tasks completed gracefully
 }
 ```
 
@@ -90,15 +91,15 @@ go run ./examples/tasks
 
 #### Write Your Own Tasks With `MultiPB` and `PB`
 
-The above sample shows you how our `Task` was been encouraged by
+The above sample shows you how a `Task` could be encouraged by
 `progressbar.WithTaskAddOnTaskProgressing`, `WithTaskAddOnTaskInitializing`
 and `WithTaskAddOnTaskCompleted`.
 
 You can write your `Task` and feedback the progress to multi-pbar (`MultiPB`)
 or pbar (`PB`), see the source code `taskdownload.go`.
 
-The key point is wrapping your task runner as a `PB.Worker`, and add it with
-`WithBarWorker`.
+The key point is, wrapping your task runner as a `PB.Worker`, and
+add it with `WithBarWorker`.
 
 <details>
 <summary> Expand to get implementations </summary>
@@ -154,7 +155,7 @@ func (s *aTask) doWorker(bar PB, exitCh <-chan struct{}) {
 		select {
 		case <-exitCh:
 			return
-		default:
+		default: // avoid block at <-exitCh
 		}
 
 		// time.Sleep(time.Millisecond * 100)
@@ -195,7 +196,7 @@ func (s *aTask) onStart(bar PB) {
 
 </details>
 
-#### Multiple Bars
+#### Multiple Bars (and Multiple groups)
 
 For using `Stepper` instead of `Spinner`, these fragments can be applied:
 
@@ -239,7 +240,7 @@ func downloadGroups() {
 }
 ```
 
-Run it:
+Run it(s):
 
 ```bash
 go run ./examples/multibar
@@ -247,7 +248,7 @@ go run ./examples/multibar 3 # to select a stepper
 
 # Or using spinner style
 go run ./examples/multibar_spinner
-go run ./examples/multibar_spinner 3 # to select a stepper
+go run ./examples/multibar_spinner 3 # to select a spinners
 ```
 
 ### Customize the bar layout
@@ -287,6 +288,9 @@ tasks.Add(
 ```
 
 Simple html tags (b, i, u, font, strong, em, cite, mark, del, kbd, code, html, head, body) can be embedded if ANSI Escaped Color codes is hard to use.
+
+> `tool.GetCPT()` returns a `ColorTranslater` to help you strips the
+> basic HTML tags and render them with ANSI escape sequences.
 
 The API to change a spinner's display layout is same to above.
 
