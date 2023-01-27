@@ -14,8 +14,10 @@ Its original sample is pip installing ui.
 
 ## History
 
-- v1.1.1 (TODO)
+- v1.1.1
   - fixing the minor display matter
+  - added `WithBarIndentChars(s)`, `WithBarAppendText(s)`, `WithBarPrependText(s)`, and `WithBarExtraTailSpaces(howMany)`
+  - added `WithBarOnDataPrepared(cb)` so you can observer and postprocess the data provided to bar layout template.
 
 - v1.1.0
   - fixed possible broken output in escape sequences
@@ -302,7 +304,40 @@ Simple html tags (b, i, u, font, strong, em, cite, mark, del, kbd, code, html, h
 > `tool.GetCPT()` returns a `ColorTranslater` to help you strips the
 > basic HTML tags and render them with ANSI escape sequences.
 
-The API to change a spinner's display layout is same to above.
+If you wanna build a better Percent or Elapsed, try formatting with `PercentFloat` and `ElapsedTime` field:
+
+```go
+const schema = `{{.PercentFloat|printf "%3.1f%%" }},  {{.ElapsedTime}}`
+```
+
+To observer the supplied data to the schema, try `WithBarOnDataPrepared(cb)`:
+
+```go
+tasks.Add(
+	progressbar.WithTaskAddBarOptions(
+		progressbar.WithBarStepper(i),
+		progressbar.WithBarUpperBound(100),
+		progressbar.WithBarWidth(32),
+		progressbar.WithBarTextSchema(schema),
+		progressbar.WithBarExtraTailSpaces(16),
+		progressbar.WithBarPrependText("[[[x]]]"),
+		progressbar.WithBarAppendText("[[[z]]]"),
+		progressbar.WithBarOnDataPrepared(func(bar progressbar.PB, data *progressbar.SchemaData) {
+			data.ElapsedTime *= 2
+		}),
+	),
+	progressbar.WithTaskAddBarTitle("Task "+strconv.Itoa(i)), // fmt.Sprintf("Task %v", i)),
+	progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) {
+		for max, ix := bar.UpperBound(), int64(0); ix < max; ix++ {
+			ms := time.Duration(10 + rand.Intn(300)) //nolint:gosec //just a demo
+			time.Sleep(time.Millisecond * ms)
+			bar.Step(1)
+		}
+	}),
+)
+```
+
+> The API to change a spinner's display layout is same to above.
 
 ## Using `cursor` lib
 
