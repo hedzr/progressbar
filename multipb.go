@@ -86,6 +86,7 @@ func (mpb *mpbar) SignalExit() <-chan struct{} { return mpb.sigExit }
 
 func (mpb *mpbar) Add(maxBytes int64, title string, opts ...Opt) (index int) {
 	pb := defaultBytes(mpb, maxBytes, title, opts...).(*pbar) //nolint:errcheck //the call is always ok
+	pb.stepper.SetIndentChars(indentChars)
 
 	mpb.rw.Lock()
 	defer mpb.rw.Unlock()
@@ -135,7 +136,7 @@ func (mpb *mpbar) redrawNow() {
 
 	for _, pb := range mpb.bars {
 		str := pb.String()
-		mpb.out.Write([]byte(indentChars))
+		// mpb.out.Write([]byte(indentChars))
 		mpb.out.Write([]byte(str))
 		mpb.out.Write([]byte("\n"))
 		// _, _ = fmt.Fprintf(mpb.out, "%s%s\n", indentChars, str)

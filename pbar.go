@@ -42,9 +42,10 @@ type PB interface {
 }
 
 type (
-	Worker      func(bar PB, exitCh <-chan struct{})
-	OnCompleted func(bar PB)
-	OnStart     func(bar PB)
+	Worker         func(bar PB, exitCh <-chan struct{})
+	OnCompleted    func(bar PB)
+	OnStart        func(bar PB)
+	OnDataPrepared func(bar PB, data *SchemaData)
 )
 
 type pbar struct {
@@ -54,9 +55,10 @@ type pbar struct {
 	stepper barT
 	mpbar   MultiPB
 
-	worker  Worker
-	onComp  OnCompleted
-	onStart OnStart
+	worker         Worker
+	onComp         OnCompleted
+	onStart        OnStart
+	onDataPrepared OnDataPrepared
 
 	title string
 

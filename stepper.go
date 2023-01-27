@@ -21,6 +21,10 @@ type barT interface {
 
 	SetSchema(schema string)
 	SetWidth(w int)
+	SetIndentChars(s string)
+	SetPrependText(s string)
+	SetAppendText(s string)
+	SetExtraTailSpaces(howMany int)
 }
 
 var steppers = map[int]*stepper{
@@ -36,18 +40,19 @@ var steppers = map[int]*stepper{
 
 type stepper struct {
 	tool.ColorTranslator
-	tmpl         *template.Template
-	unread       string
-	read         string
-	leftHalf     string
-	rightHalf    string
-	indentL      string
-	prepend      string
-	append       string
-	schema       string
-	clrBase      int
-	clrHighlight int
-	barWidth     int
+	tmpl             *template.Template
+	unread           string
+	read             string
+	leftHalf         string
+	rightHalf        string
+	indentL          string
+	prepend          string
+	append           string
+	schema           string
+	clrBase          int
+	clrHighlight     int
+	barWidth         int
+	safetyTailSpaces int
 }
 
 func (s *stepper) SetSchema(schema string) {
@@ -59,12 +64,31 @@ func (s *stepper) SetWidth(w int) {
 	s.barWidth = w
 }
 
+func (s *stepper) SetIndentChars(str string) {
+	s.indentL = str
+}
+
+func (s *stepper) SetPrependText(str string) {
+	s.prepend = str
+}
+
+func (s *stepper) SetAppendText(str string) {
+	s.append = str
+}
+
+func (s *stepper) SetExtraTailSpaces(howMany int) {
+	s.safetyTailSpaces = howMany
+}
+
 func (s *stepper) init() *stepper {
 	if s.ColorTranslator == nil {
 		s.ColorTranslator = tool.NewCPT()
 	}
 	if s.tmpl == nil {
 		s.updateSchema()
+	}
+	if s.safetyTailSpaces == 0 {
+		s.safetyTailSpaces = 8
 	}
 	return s
 }
@@ -79,6 +103,7 @@ func (s *stepper) updateSchema() *stepper {
 	s.tmpl = template.Must(template.New("bar-build").Parse(s.schema))
 	return s
 }
+
 func (s *stepper) buildBar(pb *pbar, pos, barWidth int, half bool) string {
 	var sb bytes.Buffer
 	if pos > 0 {
@@ -96,6 +121,12 @@ func (s *stepper) buildBar(pb *pbar, pos, barWidth int, half bool) string {
 			rightPart = strings.Repeat(s.unread, barWidth-pos-1)
 			sb.WriteString(s.Colorize(s.Translate(rightPart, 0), s.clrBase))
 		}
+	} else {
+		if barWidth > pos {
+			var rightPart string
+			rightPart = strings.Repeat(s.unread, barWidth-pos-1)
+			sb.WriteString(s.Colorize(s.Translate(rightPart, 0), s.clrHighlight))
+		}
 	}
 	return sb.String()
 }
@@ -110,10 +141,6 @@ func (s *stepper) buildBar(pb *pbar, pos, barWidth int, half bool) string {
 // 	return sb.String()
 // }
 
-func (s *stepper) String(pb *pbar) string {
-	return string(s.Bytes(pb))
-}
-
 func (s *stepper) Bytes(pb *pbar) []byte {
 	percent := float64(pb.read) / float64(pb.max-pb.min)
 
@@ -126,25 +153,32 @@ func (s *stepper) Bytes(pb *pbar) []byte {
 	total, suffix1 := humanizeBytes(float64(pb.max))
 	speed, suffix2 := humanizeBytes(float64(pb.read) / dur.Seconds())
 
-	pos1 := int(percent * 60)
+	pos1 := int(percent * float64(s.barWidth) * 2)
 	half := pos1%2 == 0
 	pos := pos1 / 2
 
 	var sb bytes.Buffer
-	data := &schemaData{
-		Indent:  s.indentL,
-		Prepend: s.prepend,
-		Bar:     s.buildBar(pb, pos, s.barWidth, half),
-		Percent: fltfmtpercent(percent), // fmt.Sprintf("%.1f%%", percent),
-		Title:   pb.title,               //
-		Current: read + suffix,          // fmt.Sprintf("%v%v", read, suffix),
-		Total:   total + suffix1,        // fmt.Sprintf("%v%v", total, suffix1),
-		Speed:   speed + suffix2 + "/s", // fmt.Sprintf("%v%v/s", speed, suffix2),
-		Elapsed: durfmt(dur),            // fmt.Sprintf("%v", dur), //nolint:gocritic
-		Append:  s.append,
+	data := &SchemaData{
+		Indent:       s.indentL,
+		Prepend:      s.prepend,
+		Bar:          s.buildBar(pb, pos, s.barWidth, half),
+		Percent:      fltfmtpercent(percent), // fmt.Sprintf("%.1f%%", percent),
+		PercentFloat: percent,                // percent = 61 => 61.0%
+		Title:        pb.title,               //
+		Current:      read + suffix,          // fmt.Sprintf("%v%v", read, suffix),
+		Total:        total + suffix1,        // fmt.Sprintf("%v%v", total, suffix1),
+		Speed:        speed + suffix2 + "/s", // fmt.Sprintf("%v%v/s", speed, suffix2),
+		Elapsed:      durfmt(dur),            // fmt.Sprintf("%v", dur), //nolint:gocritic
+		ElapsedTime:  dur,
+		Append:       s.append,
 	}
 
 	s.init()
+
+	if pb.onDataPrepared != nil {
+		pb.onDataPrepared(pb, data)
+	}
+
 	err := s.tmpl.Execute(&sb, data)
 	if err != nil {
 		log.Printf("Error: %v", err)
@@ -153,21 +187,16 @@ func (s *stepper) Bytes(pb *pbar) []byte {
 	// str := sb.Bytes()
 	// return str
 
+	if s.safetyTailSpaces > 0 {
+		sb.WriteString(strings.Repeat(" ", s.safetyTailSpaces))
+	}
+
 	str := s.Translate(sb.String(), 0)
 	return []byte(str)
 }
 
-type schemaData struct {
-	Indent  string
-	Prepend string
-	Bar     string
-	Percent string
-	Title   string
-	Current string
-	Total   string
-	Elapsed string
-	Speed   string
-	Append  string
+func (s *stepper) String(pb *pbar) string {
+	return string(s.Bytes(pb))
 }
 
 const (

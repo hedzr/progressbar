@@ -44,6 +44,36 @@ func WithBarTextSchema(schema string) Opt {
 	}
 }
 
+func WithBarIndentChars(str string) Opt {
+	return func(pb *pbar) {
+		pb.stepper.SetIndentChars(str)
+	}
+}
+
+func WithBarPrependText(str string) Opt {
+	return func(pb *pbar) {
+		pb.stepper.SetPrependText(str)
+	}
+}
+
+func WithBarAppendText(str string) Opt {
+	return func(pb *pbar) {
+		pb.stepper.SetAppendText(str)
+	}
+}
+
+// WithBarExtraTailSpaces specifies how many spaces will be printed
+// at end of each bar. These spaces can wipe out the dirty tail of
+// line.
+//
+// Default is 8 (spaces). You may specify -1 to disable extra
+// spaces to be printed.
+func WithBarExtraTailSpaces(howMany int) Opt {
+	return func(pb *pbar) {
+		pb.stepper.SetExtraTailSpaces(howMany)
+	}
+}
+
 func WithBarWorker(w Worker) Opt {
 	return func(pb *pbar) {
 		pb.worker = w
@@ -62,6 +92,12 @@ func WithBarOnStart(cb OnStart) Opt {
 	}
 }
 
+func WithBarOnDataPrepared(cb OnDataPrepared) Opt {
+	return func(pb *pbar) {
+		pb.onDataPrepared = cb
+	}
+}
+
 type (
 	OnDone func(mpb MultiPB)
 	MOpt   func(mpb *mpbar)
@@ -73,7 +109,7 @@ func WithOnDone(cb OnDone) MOpt {
 	}
 }
 
-func WithOutput(out io.Writer) MOpt {
+func WithOutputDevice(out io.Writer) MOpt {
 	return func(mpb *mpbar) {
 		mpb.out = out
 	}

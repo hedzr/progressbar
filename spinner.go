@@ -100,15 +100,16 @@ var spinners = map[int]*spinner{
 
 type spinner struct {
 	tool.ColorTranslator
-	onDraw   func(pb *pbar)
-	tmpl     *template.Template
-	indentL  string
-	prepend  string
-	append   string
-	schema   string
-	chars    []string
-	barWidth int
-	gauge    int32
+	onDraw           func(pb *pbar)
+	tmpl             *template.Template
+	indentL          string
+	prepend          string
+	append           string
+	schema           string
+	chars            []string
+	barWidth         int
+	safetyTailSpaces int
+	gauge            int32
 }
 
 func (s *spinner) SetSchema(schema string) {
@@ -120,12 +121,31 @@ func (s *spinner) SetWidth(w int) {
 	s.barWidth = w
 }
 
+func (s *spinner) SetIndentChars(str string) {
+	s.indentL = str
+}
+
+func (s *spinner) SetPrependText(str string) {
+	s.prepend = str
+}
+
+func (s *spinner) SetAppendText(str string) {
+	s.append = str
+}
+
+func (s *spinner) SetExtraTailSpaces(howMany int) {
+	s.safetyTailSpaces = howMany
+}
+
 func (s *spinner) init() *spinner {
 	if s.ColorTranslator == nil {
 		s.ColorTranslator = tool.NewCPT()
 	}
 	if s.tmpl == nil {
 		s.updateSchema()
+	}
+	if s.safetyTailSpaces == 0 {
+		s.safetyTailSpaces = 8
 	}
 	return s
 }
@@ -173,24 +193,35 @@ func (s *spinner) Bytes(pb *pbar) []byte {
 	total, suffix1 := humanizeBytes(float64(pb.max))
 	speed, suffix2 := humanizeBytes(float64(pb.read) / dur.Seconds())
 
-	data := &schemaData{
-		Indent:  s.indentL,
-		Prepend: s.prepend,
-		Bar:     s.buildBar(pb, cnt, s.barWidth, false),
-		Percent: fltfmtpercent(percent), // fmt.Sprintf("%.1f%%", percent),
-		Title:   pb.title,               //
-		Current: read + suffix,          // fmt.Sprintf("%v%v", read, suffix),
-		Total:   total + suffix1,        // fmt.Sprintf("%v%v", total, suffix1),
-		Speed:   speed + suffix2 + "/s", // fmt.Sprintf("%v%v/s", speed, suffix2),
-		Elapsed: durfmt(dur),            // fmt.Sprintf("%v", dur), //nolint:gocritic
-		Append:  s.append,
+	data := &SchemaData{
+		Indent:       s.indentL,
+		Prepend:      s.prepend,
+		Bar:          s.buildBar(pb, cnt, s.barWidth, false),
+		Percent:      fltfmtpercent(percent), // fmt.Sprintf("%.1f%%", percent),
+		PercentFloat: percent,                // percent = 61 => 61.0%
+		Title:        pb.title,               //
+		Current:      read + suffix,          // fmt.Sprintf("%v%v", read, suffix),
+		Total:        total + suffix1,        // fmt.Sprintf("%v%v", total, suffix1),
+		Speed:        speed + suffix2 + "/s", // fmt.Sprintf("%v%v/s", speed, suffix2),
+		Elapsed:      durfmt(dur),            // fmt.Sprintf("%v", dur), //nolint:gocritic
+		ElapsedTime:  dur,
+		Append:       s.append,
 	}
 
 	s.init()
+
+	if pb.onDataPrepared != nil {
+		pb.onDataPrepared(pb, data)
+	}
+
 	var sb bytes.Buffer
 	err := s.tmpl.Execute(&sb, data)
 	if err != nil {
 		log.Printf("Error: %v", err)
+	}
+
+	if s.safetyTailSpaces > 0 {
+		sb.WriteString(strings.Repeat(" ", s.safetyTailSpaces))
 	}
 
 	str := s.Translate(sb.String(), 0)

@@ -19,7 +19,7 @@ func intfmt(i int64) string {
 }
 
 func durfmt(d time.Duration) string {
-	return d.String()
+	return d.Round(time.Second).String()
 }
 
 func humanizeBytes(s float64) (value, suffix string) {
