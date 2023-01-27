@@ -13,6 +13,36 @@ import (
 	"sync/atomic"
 )
 
+// NewDownloadTasks is a wrapped NewTasks to simplify the http
+// downloading task.
+//
+// Via this API you can easily download one and more http files.
+//
+//	func doEachGroup(group []string) {
+//		tasks := progressbar.NewDownloadTasks(progressbar.New())
+//		defer tasks.Close()
+//
+//		for _, ver := range group {
+//			url := "https://dl.google.com/go/go" + ver + ".src.tar.gz"
+//			fn := "go" + ver + ".src.tar.gz"
+//			// url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+//			// fn := fmt.Sprintf("go%v.src.tar.gz", ver)
+//
+//			tasks.Add(url, fn,
+//				progressbar.WithBarStepper(whichStepper),
+//			)
+//		}
+//		tasks.Wait()
+//	}
+//
+//	func downloadGroups() {
+//		for _, group := range [][]string{
+//			{"1.14.2", "1.15.1"},
+//			{"1.16.1", "1.17.1", "1.18.3"},
+//		} {
+//			doEachGroup(group)
+//		}
+//	}
 func NewDownloadTasks(bar MultiPB) *DownloadTasks {
 	return &DownloadTasks{bar: bar}
 }
@@ -89,8 +119,7 @@ func (s *aTask) Close() {
 		}
 	}
 	if s.wg != nil {
-		atomic.AddInt32(&s.doneCount, 1)
-		s.wg.Done()
+		s.terminateTrigger()
 	}
 }
 
@@ -107,10 +136,15 @@ func (s *aTask) run() {
 }
 
 func (s *aTask) onCompleted(bar PB) {
-	wg := s.wg
-	s.wg = nil
-	wg.Done()
-	atomic.AddInt32(&s.doneCount, 1)
+	s.terminateTrigger()
+}
+
+func (s *aTask) terminateTrigger() {
+	if atomic.CompareAndSwapInt32(&s.doneCount, 0, 1) {
+		wg := s.wg
+		s.wg = nil
+		wg.Done()
+	}
 }
 
 func (s *aTask) onStart(bar PB) {
@@ -119,14 +153,17 @@ func (s *aTask) onStart(bar PB) {
 		s.req, err = http.NewRequest("GET", s.url, nil) //nolint:gocritic
 		if err != nil {
 			log.Printf("Error: %v", err)
+			return
 		}
 		s.f, err = os.OpenFile(s.fn, os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			log.Printf("Error: %v", err)
+			return
 		}
 		s.resp, err = http.DefaultClient.Do(s.req)
 		if err != nil {
 			log.Printf("Error: %v", err)
+			return
 		}
 		bar.UpdateRange(0, s.resp.ContentLength)
 

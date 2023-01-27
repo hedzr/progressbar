@@ -9,6 +9,39 @@ import (
 	"sync/atomic"
 )
 
+// NewTasks creates a Tasks container which you can add the tasks
+// in it.
+//
+//	tasks := progressbar.NewTasks(progressbar.New())
+//	defer tasks.Close()
+//
+//	max := count
+//	_, h, _ := terminal.GetSize(int(os.Stdout.Fd()))
+//	if max >= h {
+//		max = h
+//	}
+//
+//	for i := whichStepper; i < whichStepper+max; i++ {
+//		tasks.Add(
+//			progressbar.WithTaskAddBarOptions(
+//				progressbar.WithBarStepper(i),
+//				progressbar.WithBarUpperBound(100),
+//				progressbar.WithBarWidth(32),
+//			),
+//			progressbar.WithTaskAddBarTitle("Task "+strconv.Itoa(i)), // fmt.Sprintf("Task %v", i)),
+//			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) {
+//				for max, ix := bar.UpperBound(), int64(0); ix < max; ix++ {
+//					ms := time.Duration(10 + rand.Intn(300)) //nolint:gosec //just a demo
+//					time.Sleep(time.Millisecond * ms)
+//					bar.Step(1)
+//				}
+//			}),
+//		)
+//	}
+//
+//	tasks.Wait()
+//
+// Above.
 func NewTasks(bar MultiPB) *Tasks {
 	return &Tasks{bar: bar}
 }
