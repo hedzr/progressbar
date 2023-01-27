@@ -326,6 +326,7 @@ cptCM = map[string]int{
 	"white": FgWhite,
 }
 ```
+
 > `tool.GetCPT()` returns a `ColorTranslater` to help you strips the
 > basic HTML tags and render them with ANSI escape sequences.
 
