@@ -13,7 +13,7 @@ import (
 	"github.com/hedzr/progressbar/cursor"
 )
 
-const schema = `{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | <b><font color="green">{{.Title}}</font></b> {{.Append}}`
+const schema = `{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent|printf "%6s"}} | <b><font color="green">{{.Title}}</font></b> {{.Append}}`
 
 var whichSpinner = 0
 

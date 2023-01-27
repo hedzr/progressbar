@@ -19,7 +19,7 @@ import (
 )
 
 // const schema = `{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | <b><font color="green">{{.Title}}</font></b> {{.Append}}`
-const schema = `{{.Indent}}{{.Prepend}} <b><font color="light-yellow">{{.Title}}</font></b> <font color="blue">{{.Percent}}</font> [{{.Bar}}]{{.Append}}`
+const schema = `{{.Indent}}{{.Prepend}}<b><font color="light-yellow">{{.Title}}</font></b> <font color="blue">{{.Percent|printf "%6s"}}</font> [{{.Bar}}] {{.ElapsedTime}}{{.Append}}`
 
 var whichStepper = 0
 var count = 0
@@ -41,11 +41,17 @@ func forAllSteppers() {
 				progressbar.WithBarUpperBound(100),
 				progressbar.WithBarWidth(32),
 				progressbar.WithBarTextSchema(schema),
+				progressbar.WithBarExtraTailSpaces(16),
+				progressbar.WithBarPrependText("[[[x]]]"),
+				progressbar.WithBarAppendText("[[[z]]]"),
+				progressbar.WithBarOnDataPrepared(func(bar progressbar.PB, data *progressbar.SchemaData) {
+					data.ElapsedTime *= 2
+				}),
 			),
 			progressbar.WithTaskAddBarTitle("Task "+strconv.Itoa(i)), // fmt.Sprintf("Task %v", i)),
 			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) {
 				for max, ix := bar.UpperBound(), int64(0); ix < max; ix++ {
-					ms := time.Duration(10 + rand.Intn(500)) //nolint:gosec //just a demo
+					ms := time.Duration(10 + rand.Intn(300)) //nolint:gosec //just a demo
 					time.Sleep(time.Millisecond * ms)
 					bar.Step(1)
 				}
