@@ -14,86 +14,24 @@ import (
 	"golang.org/x/net/html"
 )
 
-// some refs:
-// - github.com/labstack/gommon/color
-//
-
-const (
-	defaultTimestampFormat = time.RFC3339 //nolint:deadcode,unused,varcheck //keep it
-
-	// https://en.wikipedia.org/wiki/ANSI_escape_code
-	// https://zh.wikipedia.org/wiki/ANSI%E8%BD%AC%E4%B9%89%E5%BA%8F%E5%88%97
-
-	// FgBlack terminal color code
-	FgBlack = 30
-	// FgRed terminal color code
-	FgRed = 31
-	// FgGreen terminal color code
-	FgGreen = 32
-	// FgYellow terminal color code
-	FgYellow = 33
-	// FgBlue terminal color code
-	FgBlue = 34
-	// FgMagenta terminal color code
-	FgMagenta = 35
-	// FgCyan terminal color code
-	FgCyan = 36
-	// FgLightGray terminal color code
-	FgLightGray = 37
-	// FgDarkGray terminal color code
-	FgDarkGray = 90
-	// FgLightRed terminal color code
-	FgLightRed = 91
-	// FgLightGreen terminal color code
-	FgLightGreen = 92
-	// FgLightYellow terminal color code
-	FgLightYellow = 93
-	// FgLightBlue terminal color code
-	FgLightBlue = 94
-	// FgLightMagenta terminal color code
-	FgLightMagenta = 95
-	// FgLightCyan terminal color code
-	FgLightCyan = 96
-	// FgWhite terminal color code
-	FgWhite = 97
-
-	// BgNormal terminal color code
-	BgNormal = 0
-	// BgBoldOrBright terminal color code
-	BgBoldOrBright = 1
-	// BgDim terminal color code
-	BgDim = 2
-	// BgItalic terminal color code
-	BgItalic = 3
-	// BgUnderline terminal color code
-	BgUnderline = 4
-	// BgUlink terminal color code
-	BgUlink = 5
-	// BgInverse _
-	BgInverse = 7
-	// BgHidden terminal color code
-	BgHidden = 8
-	// BgStrikeout terminal color code
-	BgStrikeout = 9
-
-	// DarkColor terminal color code
-	DarkColor = FgLightGray
-)
-
-var (
-	// onceColorPrintTranslator sync.Once
-	cpt   colorPrintTranslator
-	cptNC = colorPrintTranslator{noColorMode: true}
-)
-
 func GetNoColorMode() bool { return false }
 
-func GetCPT() ColorTranslator {
+func GetStockedCPT() ColorTranslator {
 	cptLocal := &cpt
 	if GetNoColorMode() {
 		cptLocal = &cptNC
 	}
 	return cptLocal
+}
+
+func NewCPT() ColorTranslator {
+	var cpt1 colorPrintTranslator
+	return &cpt1
+}
+
+func NewCPTNoColor() ColorTranslator {
+	var cpt1 = colorPrintTranslator{noColorMode: true}
+	return &cpt1
 }
 
 // ColorTranslator _
@@ -114,9 +52,9 @@ func (c *colorPrintTranslator) resetColors(sb *strings.Builder, states []int) fu
 	return func() {
 		sb.WriteString(aecResetColors)
 		if len(states) > 0 {
-			sb.Write([]byte(aecPrefix))
-			sb.Write([]byte(strconv.Itoa(states[len(states)-1])))
-			sb.WriteRune(aecSuffix)
+			sb.WriteString(aecPrefix)
+			sb.WriteString(strconv.Itoa(states[len(states)-1]))
+			sb.WriteByte(aecSuffix)
 			// st = fmt.Sprintf("\x1b[%dm", states[len(states)-1])
 			// (*sb).WriteString(st)
 		}
@@ -124,14 +62,14 @@ func (c *colorPrintTranslator) resetColors(sb *strings.Builder, states []int) fu
 }
 
 const aecResetColors = "\x1b[0m"
-const aecPrefix = "\x1b[0m"
+const aecPrefix = "\x1b["
 const aecSuffix = 'm'
 
 func (c *colorPrintTranslator) Colorize(s string, clr int) string {
 	var sb strings.Builder
-	sb.Write([]byte(aecPrefix))
+	sb.WriteString(aecPrefix)
 	sb.WriteString(strconv.Itoa(clr))
-	sb.WriteRune(aecSuffix)
+	sb.WriteByte(aecSuffix)
 	// sb.WriteString(fmt.Sprintf("\x1b[%dm", clr))
 	sb.WriteString(s)
 	sb.WriteString(aecResetColors)
@@ -140,7 +78,7 @@ func (c *colorPrintTranslator) Colorize(s string, clr int) string {
 
 func (c *colorPrintTranslator) colorize(sb *strings.Builder, states []int, walker *func(node *html.Node, level int)) func(node *html.Node, clr int, representation string, level int) {
 	return func(node *html.Node, clr int, representation string, level int) {
-		sb.Write([]byte(aecPrefix))
+		sb.WriteString(aecPrefix)
 		if representation != "" {
 			sb.WriteString(representation)
 			// (*sb).WriteString(fmt.Sprintf("\x1b[%sm", representation))
@@ -148,7 +86,7 @@ func (c *colorPrintTranslator) colorize(sb *strings.Builder, states []int, walke
 			sb.WriteString(strconv.Itoa(clr))
 			// (*sb).WriteString(fmt.Sprintf("\x1b[%dm", clr))
 		}
-		sb.WriteRune(aecSuffix)
+		sb.WriteByte(aecSuffix)
 		states = append(states, clr)
 		for child := node.FirstChild; child != nil; child = child.NextSibling {
 			(*walker)(child, level+1)
@@ -395,3 +333,75 @@ func (c *colorPrintTranslator) stripHTMLTags(s string) string {
 	s = builder.String()
 	return s
 }
+
+// some refs:
+// - github.com/labstack/gommon/color
+//
+
+const (
+	defaultTimestampFormat = time.RFC3339 //nolint:deadcode,unused,varcheck //keep it
+
+	// https://en.wikipedia.org/wiki/ANSI_escape_code
+	// https://zh.wikipedia.org/wiki/ANSI%E8%BD%AC%E4%B9%89%E5%BA%8F%E5%88%97
+
+	// FgBlack terminal color code
+	FgBlack = 30
+	// FgRed terminal color code
+	FgRed = 31
+	// FgGreen terminal color code
+	FgGreen = 32
+	// FgYellow terminal color code
+	FgYellow = 33
+	// FgBlue terminal color code
+	FgBlue = 34
+	// FgMagenta terminal color code
+	FgMagenta = 35
+	// FgCyan terminal color code
+	FgCyan = 36
+	// FgLightGray terminal color code
+	FgLightGray = 37
+	// FgDarkGray terminal color code
+	FgDarkGray = 90
+	// FgLightRed terminal color code
+	FgLightRed = 91
+	// FgLightGreen terminal color code
+	FgLightGreen = 92
+	// FgLightYellow terminal color code
+	FgLightYellow = 93
+	// FgLightBlue terminal color code
+	FgLightBlue = 94
+	// FgLightMagenta terminal color code
+	FgLightMagenta = 95
+	// FgLightCyan terminal color code
+	FgLightCyan = 96
+	// FgWhite terminal color code
+	FgWhite = 97
+
+	// BgNormal terminal color code
+	BgNormal = 0
+	// BgBoldOrBright terminal color code
+	BgBoldOrBright = 1
+	// BgDim terminal color code
+	BgDim = 2
+	// BgItalic terminal color code
+	BgItalic = 3
+	// BgUnderline terminal color code
+	BgUnderline = 4
+	// BgUlink terminal color code
+	BgUlink = 5
+	// BgInverse _
+	BgInverse = 7
+	// BgHidden terminal color code
+	BgHidden = 8
+	// BgStrikeout terminal color code
+	BgStrikeout = 9
+
+	// DarkColor terminal color code
+	DarkColor = FgLightGray
+)
+
+var (
+	// onceColorPrintTranslator sync.Once
+	cpt   colorPrintTranslator
+	cptNC = colorPrintTranslator{noColorMode: true}
+)

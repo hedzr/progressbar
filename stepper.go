@@ -36,6 +36,7 @@ var steppers = map[int]*stepper{
 }
 
 type stepper struct {
+	tool.ColorTranslator
 	tmpl         *template.Template
 	unread       string
 	read         string
@@ -58,7 +59,10 @@ func (s *stepper) SetWidth(w int) {
 	s.barWidth = w
 }
 
-func (s *stepper) init() {
+func (s *stepper) init() *stepper {
+	if s.ColorTranslator == nil {
+		s.ColorTranslator = tool.NewCPT()
+	}
 	if s.tmpl == nil {
 		if s.schema == "" {
 			s.schema = defaultSchema
@@ -75,18 +79,18 @@ func (s *stepper) buildBar(pb *pbar, pos, barWidth int, half bool) string {
 	cpt := tool.GetCPT()
 	if pos > 0 {
 		leftPart := strings.Repeat(s.read, pos)
-		sb.WriteString(cpt.Colorize(cpt.Translate(leftPart, 0), s.clrHighlight))
+		sb.WriteString(s.Colorize(s.Translate(leftPart, 0), s.clrHighlight))
 	}
 	if !pb.completed {
 		var rightPart string
 		if half {
-			sb.WriteString(cpt.Colorize(s.leftHalf, s.clrBase))
+			sb.WriteString(s.Colorize(s.leftHalf, s.clrBase))
 		} else {
-			sb.WriteString(cpt.Colorize(s.rightHalf, s.clrHighlight))
+			sb.WriteString(s.Colorize(s.rightHalf, s.clrHighlight))
 		}
 		if barWidth > pos {
 			rightPart = strings.Repeat(s.unread, barWidth-pos-1)
-			sb.WriteString(cpt.Colorize(cpt.Translate(rightPart, 0), s.clrBase))
+			sb.WriteString(s.Colorize(s.Translate(rightPart, 0), s.clrBase))
 		}
 	}
 	return sb.String()
@@ -147,7 +151,7 @@ func (s *stepper) Bytes(pb *pbar) []byte {
 	// str := sb.Bytes()
 	// return str
 
-	str := cpt.Translate(sb.String(), 0)
+	str := s.Translate(sb.String(), 0)
 	return []byte(str)
 }
 

@@ -14,7 +14,7 @@ func defaultBytes(mpbar MultiPB, maxBytes int64, title string, opts ...Opt) PB {
 		mpbar:     mpbar,
 		max:       maxBytes,
 		title:     title,
-		stepper:   steppers[0],
+		stepper:   steppers[0].init(),
 		startTime: time.Now(),
 		// sigRedraw: make(chan struct{}),
 		// sigExit:   make(chan struct{}),

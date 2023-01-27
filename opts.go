@@ -10,7 +10,7 @@ type Opt func(pb *pbar)
 func WithBarSpinner(whichOne int) Opt {
 	return func(pb *pbar) {
 		if s, ok := spinners[whichOne]; ok {
-			pb.stepper = s
+			pb.stepper = s.init()
 		}
 	}
 }
@@ -18,7 +18,7 @@ func WithBarSpinner(whichOne int) Opt {
 func WithBarStepper(whichOne int) Opt {
 	return func(pb *pbar) {
 		if s, ok := steppers[whichOne]; ok {
-			pb.stepper = s
+			pb.stepper = s.init()
 		}
 	}
 }

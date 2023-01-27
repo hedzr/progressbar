@@ -99,6 +99,7 @@ var spinners = map[int]*spinner{
 }
 
 type spinner struct {
+	tool.ColorTranslator
 	onDraw   func(pb *pbar)
 	tmpl     *template.Template
 	indentL  string
@@ -118,7 +119,10 @@ func (s *spinner) SetWidth(w int) {
 	s.barWidth = w
 }
 
-func (s *spinner) init() {
+func (s *spinner) init() *spinner {
+	if s.ColorTranslator == nil {
+		s.ColorTranslator = tool.NewCPT()
+	}
 	if s.tmpl == nil {
 		if s.schema == "" {
 			s.schema = defaultSchema
@@ -183,7 +187,7 @@ func (s *spinner) Bytes(pb *pbar) []byte {
 		log.Printf("Error: %v", err)
 	}
 
-	str := cpt.Translate(sb.String(), 0)
+	str := s.Translate(sb.String(), 0)
 	return []byte(str)
 
 	// if pb.completed {
