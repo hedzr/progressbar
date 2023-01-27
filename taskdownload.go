@@ -158,7 +158,7 @@ func (s *aTask) doWorker(bar PB, exitCh <-chan struct{}) {
 		select {
 		case <-exitCh:
 			return
-		default:
+		default: // avoid block at <-exitCh
 		}
 
 		// time.Sleep(time.Millisecond * 100)

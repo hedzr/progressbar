@@ -41,7 +41,7 @@ func forAllSteppers() {
 				progressbar.WithBarWidth(32),
 				// progressbar.WithBarTextSchema(schema),
 			),
-			progressbar.WithTaskAddBarTitle("Task "+strconv.Itoa(i)), // fmt.Sprintf("Task %v", i)),
+			progressbar.WithTaskAddBarTitle(string(strconv.AppendInt([]byte("Task "), int64(i), 10))), // fmt.Sprintf("Task %v", i)),
 			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) {
 				for max, ix := bar.UpperBound(), int64(0); ix < max; ix++ {
 					ms := time.Duration(10 + rand.Intn(500)) //nolint:gosec //just a demo
@@ -52,7 +52,7 @@ func forAllSteppers() {
 		)
 	}
 
-	tasks.Wait()
+	tasks.Wait() // start waiting for all tasks completed gracefully
 }
 
 func main() {

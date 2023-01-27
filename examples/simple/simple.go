@@ -68,7 +68,7 @@ func main() {
 				select {
 				case <-exitCh:
 					return
-				default:
+				default: // avoid block at <-exitCh
 				}
 
 				if _, err = io.MultiWriter(f, bar).Write(buf[:n]); err != nil {
