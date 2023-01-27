@@ -159,7 +159,7 @@ func (s *spinner) Bytes(pb *pbar) []byte {
 	cnt := int(atomic.AddInt32(&s.gauge, 1)) % len(s.chars)
 
 	var percent float64
-	percent = float64(pb.read) / float64(pb.max-pb.min) * 100
+	percent = float64(pb.read) / float64(pb.max-pb.min)
 	// if percent >= 100 {
 	// 	pb.completed = true
 	// }
@@ -173,17 +173,16 @@ func (s *spinner) Bytes(pb *pbar) []byte {
 	total, suffix1 := humanizeBytes(float64(pb.max))
 	speed, suffix2 := humanizeBytes(float64(pb.read) / dur.Seconds())
 
-	cpt := tool.GetCPT()
 	data := &schemaData{
 		Indent:  s.indentL,
 		Prepend: s.prepend,
 		Bar:     s.buildBar(pb, cnt, s.barWidth, false),
-		Percent: fltfmt(percent), // fmt.Sprintf("%.1f%%", percent),
-		Title:   pb.title,        //
-		Current: read + suffix,   // fmt.Sprintf("%v%v", read, suffix),
-		Total:   total + suffix1, // fmt.Sprintf("%v%v", total, suffix1),
-		Speed:   speed + suffix2, // fmt.Sprintf("%v%v/s", speed, suffix2),
-		Elapsed: durfmt(dur),     // fmt.Sprintf("%v", dur), //nolint:gocritic
+		Percent: fltfmtpercent(percent), // fmt.Sprintf("%.1f%%", percent),
+		Title:   pb.title,               //
+		Current: read + suffix,          // fmt.Sprintf("%v%v", read, suffix),
+		Total:   total + suffix1,        // fmt.Sprintf("%v%v", total, suffix1),
+		Speed:   speed + suffix2 + "/s", // fmt.Sprintf("%v%v/s", speed, suffix2),
+		Elapsed: durfmt(dur),            // fmt.Sprintf("%v", dur), //nolint:gocritic
 		Append:  s.append,
 	}
 

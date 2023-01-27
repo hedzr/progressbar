@@ -6,7 +6,6 @@ package progressbar
 import (
 	"bytes"
 	"log"
-	"math"
 	"strings"
 	"text/template"
 	"time"
@@ -82,7 +81,6 @@ func (s *stepper) updateSchema() *stepper {
 }
 func (s *stepper) buildBar(pb *pbar, pos, barWidth int, half bool) string {
 	var sb bytes.Buffer
-	cpt := tool.GetCPT()
 	if pos > 0 {
 		leftPart := strings.Repeat(s.read, pos)
 		sb.WriteString(s.Colorize(s.Translate(leftPart, 0), s.clrHighlight))
@@ -117,7 +115,7 @@ func (s *stepper) String(pb *pbar) string {
 }
 
 func (s *stepper) Bytes(pb *pbar) []byte {
-	percent := float64(pb.read) / float64(pb.max-pb.min) * 100
+	percent := float64(pb.read) / float64(pb.max-pb.min)
 
 	if !pb.completed {
 		pb.stopTime = time.Now()
@@ -128,23 +126,21 @@ func (s *stepper) Bytes(pb *pbar) []byte {
 	total, suffix1 := humanizeBytes(float64(pb.max))
 	speed, suffix2 := humanizeBytes(float64(pb.read) / dur.Seconds())
 
-	pos1 := int(percent * 60 / 100)
+	pos1 := int(percent * 60)
 	half := pos1%2 == 0
 	pos := pos1 / 2
 
-	cpt := tool.GetCPT()
 	var sb bytes.Buffer
-
 	data := &schemaData{
 		Indent:  s.indentL,
 		Prepend: s.prepend,
 		Bar:     s.buildBar(pb, pos, s.barWidth, half),
-		Percent: fltfmt(percent), // fmt.Sprintf("%.1f%%", percent),
-		Title:   pb.title,        //
-		Current: read + suffix,   // fmt.Sprintf("%v%v", read, suffix),
-		Total:   total + suffix1, // fmt.Sprintf("%v%v", total, suffix1),
-		Speed:   speed + suffix2, // fmt.Sprintf("%v%v/s", speed, suffix2),
-		Elapsed: durfmt(dur),     // fmt.Sprintf("%v", dur), //nolint:gocritic
+		Percent: fltfmtpercent(percent), // fmt.Sprintf("%.1f%%", percent),
+		Title:   pb.title,               //
+		Current: read + suffix,          // fmt.Sprintf("%v%v", read, suffix),
+		Total:   total + suffix1,        // fmt.Sprintf("%v%v", total, suffix1),
+		Speed:   speed + suffix2 + "/s", // fmt.Sprintf("%v%v/s", speed, suffix2),
+		Elapsed: durfmt(dur),            // fmt.Sprintf("%v", dur), //nolint:gocritic
 		Append:  s.append,
 	}
 
@@ -159,32 +155,6 @@ func (s *stepper) Bytes(pb *pbar) []byte {
 
 	str := s.Translate(sb.String(), 0)
 	return []byte(str)
-}
-
-func humanizeBytes(s float64) (value, suffix string) {
-	sizes := []string{" B", " kB", " MB", " GB", " TB", " PB", " EB"}
-	base := 1024.0
-	if s < 10 {
-		// return fmt.Sprintf("%2.0f", s), "B"
-		return fltfmt(s), "B"
-	}
-
-	e := math.Floor(logn(s, base))
-	suffix = sizes[int(e)]
-	val := math.Floor(s/math.Pow(base, e)*10+0.5) / 10
-
-	// f := "%.0f"
-	// if val < 10 {
-	// 	f = "%.1f"
-	// }
-	// value = fmt.Sprintf(f, val)
-
-	value = fltfmt(val)
-	return
-}
-
-func logn(n, b float64) float64 {
-	return math.Log(n) / math.Log(b)
 }
 
 type schemaData struct {
