@@ -35,6 +35,8 @@ func New(opts ...MOpt) MultiPB {
 }
 
 type SchemaData struct {
+	Data any // your customized data structure here
+
 	Indent  string
 	Prepend string
 	Bar     string
