@@ -7,6 +7,7 @@
 package cursor
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"strconv"
@@ -14,23 +15,25 @@ import (
 
 // Up moves cursor up by n
 func Up(n int) {
+	var sb bytes.Buffer
 	var bb = []byte(aecHideCursor)
-	safeWrite(bb[0:2])
+	sb.Write(bb[0:2])
 	var ss = strconv.Itoa(n)
-	safeWrite([]byte(ss))
-	var A = []byte{'A'}
-	safeWrite(A)
+	sb.WriteString(ss)
+	sb.WriteByte('A')
+	safeWrite(sb.Bytes())
 	// _, _ = fmt.Fprintf(Out, "%s[%dA", escape, n)
 }
 
 // Left moves cursor left by n
 func Left(n int) {
+	var sb bytes.Buffer
 	var bb = []byte(aecHideCursor)
-	safeWrite(bb[0:2])
+	sb.Write(bb[0:2])
 	var ss = strconv.Itoa(n)
-	safeWrite([]byte(ss))
-	var D = []byte{'D'}
-	safeWrite(D)
+	sb.WriteString(ss)
+	sb.WriteByte('D')
+	safeWrite(sb.Bytes())
 	// _, _ = fmt.Fprintf(Out, "%s[%dD", escape, n)
 }
 
@@ -51,7 +54,7 @@ func safeWrite(b []byte) (n int, e error) {
 // Out is the default output writer for the Writer
 var Out io.Writer = os.Stdout
 
-var escape = []byte{'\x1b'}
+// var escape = []byte{'\x1b'}
 
 const aecHideCursor = "\x1b[?25l"
 const aecShowCursor = "\x1b[?25h"
