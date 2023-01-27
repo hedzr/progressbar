@@ -14,7 +14,7 @@ Its original sample is pip installing ui.
 
 ## History
 
-- v1.1.3
+- v1.1.3 (WIP)
   - improving coding style
 
 - v1.1.1
