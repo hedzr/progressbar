@@ -14,8 +14,9 @@ Its original sample is pip installing ui.
 
 ## History
 
-- v1.1.3 (WIP)
-  - improving coding style
+- v1.1.3
+  - improving coding style, and more docs
+  - allow user-defined data packaged and applied to bar building: `SchemaData.Data any` added
 
 - v1.1.1
   - fixed the minor display matters
@@ -302,6 +303,29 @@ tasks.Add(
 
 Simple html tags (b, i, u, font, strong, em, cite, mark, del, kbd, code, html, head, body) can be embedded if ANSI Escaped Color codes is hard to use.
 
+The predefined named colors are also available:
+
+```go
+// These color names can be used in <font color=''> html tag:
+cptCM = map[string]int{
+	"black":     FgBlack,
+	"red":       FgRed,
+	"green":     FgGreen,
+	"yellow":    FgYellow,
+	"blue":      FgBlue,
+	"magenta":   FgMagenta,
+	"cyan":      FgCyan,
+	"lightgray": FgLightGray, "light-gray": FgLightGray,
+	"darkgray": FgDarkGray, "dark-gray": FgDarkGray,
+	"lightred": FgLightRed, "light-red": FgLightRed,
+	"lightgreen": FgLightGreen, "light-green": FgLightGreen,
+	"lightyellow": FgLightYellow, "light-yellow": FgLightYellow,
+	"lightblue": FgLightBlue, "light-blue": FgLightBlue,
+	"lightmagenta": FgLightMagenta, "light-magenta": FgLightMagenta,
+	"lightcyan": FgLightCyan, "light-cyan": FgLightCyan,
+	"white": FgWhite,
+}
+```
 > `tool.GetCPT()` returns a `ColorTranslater` to help you strips the
 > basic HTML tags and render them with ANSI escape sequences.
 
