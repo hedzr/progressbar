@@ -113,6 +113,7 @@ type spinner struct {
 
 func (s *spinner) SetSchema(schema string) {
 	s.schema = schema
+	s.updateSchema()
 }
 
 func (s *spinner) SetWidth(w int) {
@@ -124,14 +125,20 @@ func (s *spinner) init() *spinner {
 		s.ColorTranslator = tool.NewCPT()
 	}
 	if s.tmpl == nil {
-		if s.schema == "" {
-			s.schema = defaultSchema
-		}
-		if s.barWidth == 0 {
-			s.barWidth = barWidth
-		}
-		s.tmpl = template.Must(template.New("bar-build").Parse(s.schema))
+		s.updateSchema()
 	}
+	return s
+}
+
+func (s *spinner) updateSchema() *spinner {
+	if s.schema == "" {
+		s.schema = defaultSchema
+	}
+	if s.barWidth == 0 {
+		s.barWidth = barWidth
+	}
+	s.tmpl = template.Must(template.New("bar-build").Parse(s.schema))
+	return s
 }
 
 func (s *spinner) buildBar(pb *pbar, pos, barWidth int, half bool) string {

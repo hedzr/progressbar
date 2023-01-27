@@ -53,6 +53,7 @@ type stepper struct {
 
 func (s *stepper) SetSchema(schema string) {
 	s.schema = schema
+	s.updateSchema()
 }
 
 func (s *stepper) SetWidth(w int) {
@@ -64,16 +65,21 @@ func (s *stepper) init() *stepper {
 		s.ColorTranslator = tool.NewCPT()
 	}
 	if s.tmpl == nil {
-		if s.schema == "" {
-			s.schema = defaultSchema
-		}
-		if s.barWidth == 0 {
-			s.barWidth = barWidth
-		}
-		s.tmpl = template.Must(template.New("bar-build").Parse(s.schema))
+		s.updateSchema()
 	}
+	return s
 }
 
+func (s *stepper) updateSchema() *stepper {
+	if s.schema == "" {
+		s.schema = defaultSchema
+	}
+	if s.barWidth == 0 {
+		s.barWidth = barWidth
+	}
+	s.tmpl = template.Must(template.New("bar-build").Parse(s.schema))
+	return s
+}
 func (s *stepper) buildBar(pb *pbar, pos, barWidth int, half bool) string {
 	var sb bytes.Buffer
 	cpt := tool.GetCPT()
