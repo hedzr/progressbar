@@ -14,17 +14,20 @@ Its original sample is pip installing ui.
 
 ## History
 
+- v1.1.3
+  - improving coding style
+
 - v1.1.1
-  - fixing the minor display matter
+  - fixed the minor display matters
   - added `WithBarIndentChars(s)`, `WithBarAppendText(s)`, `WithBarPrependText(s)`, and `WithBarExtraTailSpaces(howMany)`
-  - added `WithBarOnDataPrepared(cb)` so you can observer and postprocess the data provided to bar layout template.
+  - added `WithBarOnDataPrepared(cb)` so you can observe and postprocess the data provided to bar layout template.
 
 - v1.1.0
   - fixed possible broken output in escape sequences
   - fixed formatting and calculating when i made it public
   - fixed setting schema when i made it public
   - fixed data race posibility when using shared CPT tool
-  - added `schema` sample app
+  - added `schema` sample app to show you how to customize me
 
 - v1.0.0
   - first release
@@ -44,7 +47,7 @@ A demo of `multibar` looks like:
 
 ### What's Steppers
 
-Stepper style like a horizontal bar with progressing tick.
+Stepper style is like a horizontal bar with progressing tick(s).
 
 ```bash
 go run ./examples/steppers
@@ -64,8 +67,8 @@ go run ./examples/spinners 0 # can be 0..75 (=progressbar.MaxSpinners())
 
 #### Using Tasks
 
-By using `progressbar.NewTasks()`, you can add new task easily
-with a bundled progressbar.
+By using `progressbar.NewTasks()`, you can add new task
+bundled with a progressbar.
 
 ```go
 func forAllSpinners() {
@@ -107,11 +110,11 @@ The above sample shows you how a `Task` could be encouraged by
 `progressbar.WithTaskAddOnTaskProgressing`, `WithTaskAddOnTaskInitializing`
 and `WithTaskAddOnTaskCompleted`.
 
-You can write your `Task` and feedback the progress to multi-pbar (`MultiPB`)
-or pbar (`PB`), see the source code `taskdownload.go`.
+You can write your `Task` and feedback the progress to multi-pbar
+(`MultiPB`) or pbar (`PB`), see the source code `taskdownload.go`.
 
-The key point is, wrapping your task runner as a `PB.Worker`, and
-add it with `WithBarWorker`.
+The key point is, wrapping your task runner, maybe called as worker,
+as a `PB.Worker`, and add it with `WithBarWorker`.
 
 <details>
 <summary> Expand to get implementations </summary>
@@ -218,10 +221,12 @@ tasks.Add(url, fn,
 )
 ```
 
-If you're looking for a downloader with progress bar, our `progressbar.NewDownloadTasks`
-is better choice because it had wrapped all things in one.
+If you're looking for a downloader with progress bar, our
+`progressbar.NewDownloadTasks` is better choice because it
+had wrapped all things in one.
 
-To start many groups of tasks like `docker pull` to get the layers, just add them:
+To start many groups of tasks like `docker pull` to get the
+layers, just add them:
 
 ```go
 func doEachGroup(group []string) {
@@ -229,17 +234,13 @@ func doEachGroup(group []string) {
 	defer tasks.Close()
 
 	for _, ver := range group {
-		url := "https://dl.google.com/go/go" + ver + ".src.tar.gz"
-		fn := "go" + ver + ".src.tar.gz"
-		// url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
-		// fn := fmt.Sprintf("go%v.src.tar.gz", ver)
-
+		url := "https://dl.google.com/go/go" + ver + ".src.tar.gz" // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+		fn := "go" + ver + ".src.tar.gz"                           // fn := fmt.Sprintf("go%v.src.tar.gz", ver)
 		tasks.Add(url, fn,
 			progressbar.WithBarStepper(whichStepper),
 		)
 	}
-
-	tasks.Wait()
+	tasks.Wait() // start waiting for all tasks completed gracefully
 }
 
 func downloadGroups() {
@@ -260,7 +261,7 @@ go run ./examples/multibar 3 # to select a stepper
 
 # Or using spinner style
 go run ./examples/multibar_spinner
-go run ./examples/multibar_spinner 3 # to select a spinners
+go run ./examples/multibar_spinner 7 # to select a spinners
 ```
 
 ### Customize the bar layout
@@ -310,7 +311,7 @@ If you wanna build a better Percent or Elapsed, try formatting with `PercentFloa
 const schema = `{{.PercentFloat|printf "%3.1f%%" }},  {{.ElapsedTime}}`
 ```
 
-To observer the supplied data to the schema, try `WithBarOnDataPrepared(cb)`:
+To observe the supplied data to the schema, try `WithBarOnDataPrepared(cb)`:
 
 ```go
 tasks.Add(
