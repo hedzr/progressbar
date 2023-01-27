@@ -14,6 +14,16 @@ Its original sample is pip installing ui.
 
 ## History
 
+- v1.1.1 (TODO)
+  - fixing the minor display matter
+
+- v1.1.0
+  - fixed possible broken output in escape sequences
+  - fixed formatting and calculating when i made it public
+  - fixed setting schema when i made it public
+  - fixed data race posibility when using shared CPT tool
+  - added `schema` sample app
+
 - v1.0.0
   - first release
 
