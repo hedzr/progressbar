@@ -136,9 +136,8 @@ func (mpb *mpbar) redrawNow() {
 
 	for _, pb := range mpb.bars {
 		str := pb.String()
-		// mpb.out.Write([]byte(indentChars))
-		mpb.out.Write([]byte(str))
-		mpb.out.Write([]byte("\n"))
+		_, _ = mpb.out.Write([]byte(str))
+		_, _ = mpb.out.Write([]byte("\n"))
 		// _, _ = fmt.Fprintf(mpb.out, "%s%s\n", indentChars, str)
 		if !pb.completed {
 			done = false

@@ -106,27 +106,21 @@ func (s *stepper) updateSchema() *stepper {
 
 func (s *stepper) buildBar(pb *pbar, pos, barWidth int, half bool) string {
 	var sb bytes.Buffer
+	var rightPart string
 	if pos > 0 {
 		leftPart := strings.Repeat(s.read, pos)
 		sb.WriteString(s.Colorize(s.Translate(leftPart, 0), s.clrHighlight))
 	}
 	if !pb.completed {
-		var rightPart string
 		if half {
 			sb.WriteString(s.Colorize(s.leftHalf, s.clrBase))
 		} else {
 			sb.WriteString(s.Colorize(s.rightHalf, s.clrHighlight))
 		}
-		if barWidth > pos {
-			rightPart = strings.Repeat(s.unread, barWidth-pos-1)
-			sb.WriteString(s.Colorize(s.Translate(rightPart, 0), s.clrBase))
-		}
-	} else {
-		if barWidth > pos {
-			var rightPart string
-			rightPart = strings.Repeat(s.unread, barWidth-pos-1)
-			sb.WriteString(s.Colorize(s.Translate(rightPart, 0), s.clrHighlight))
-		}
+	}
+	if barWidth > pos {
+		rightPart = strings.Repeat(s.unread, barWidth-pos-1)
+		sb.WriteString(s.Colorize(s.Translate(rightPart, 0), s.clrHighlight))
 	}
 	return sb.String()
 }

@@ -19,18 +19,14 @@ func doEachGroup(group []string) {
 	defer tasks.Close()
 
 	for _, ver := range group {
-		url := "https://dl.google.com/go/go" + ver + ".src.tar.gz"
-		fn := "go" + ver + ".src.tar.gz"
-		// url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
-		// fn := fmt.Sprintf("go%v.src.tar.gz", ver)
-
+		url := "https://dl.google.com/go/go" + ver + ".src.tar.gz" // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+		fn := "go" + ver + ".src.tar.gz"                           // fn := fmt.Sprintf("go%v.src.tar.gz", ver)
 		tasks.Add(url, fn,
 			progressbar.WithBarStepper(whichStepper),
 		)
 	}
 
-	// time.Sleep(5 * time.Millisecond)
-	tasks.Wait()
+	tasks.Wait() // start waiting for all tasks completed gracefully
 }
 
 func downloadGroups() {

@@ -40,8 +40,8 @@ func forAllSpinners() {
 			),
 			progressbar.WithTaskAddBarTitle("Task "+strconv.Itoa(i)), // fmt.Sprintf("Task %v", i)),
 			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) {
-				for max, ix := bar.UpperBound(), int64(0); ix < max; ix++ {
-					ms := time.Duration(20 + rand.Intn(1800)) //nolint:gosec //just a demo
+				for ub, ix := bar.UpperBound(), int64(0); ix < ub; ix++ {
+					ms := time.Duration(20 + rand.Intn(500)) //nolint:gosec //just a demo
 					time.Sleep(time.Millisecond * ms)
 					bar.Step(1)
 				}
@@ -49,8 +49,8 @@ func forAllSpinners() {
 		)
 	}
 
-	time.Sleep(5 * time.Millisecond)
-	tasks.Wait()
+	// time.Sleep(5 * time.Millisecond)
+	tasks.Wait() // start waiting for all tasks completed gracefully
 }
 
 func main() {

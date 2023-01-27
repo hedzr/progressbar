@@ -21,8 +21,8 @@ import (
 // const schema = `{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | <b><font color="green">{{.Title}}</font></b> {{.Append}}`
 const schema = `{{.Indent}}{{.Prepend}}<b><font color="light-yellow">{{.Title}}</font></b> <font color="blue">{{.Percent|printf "%6s"}}</font> [{{.Bar}}] {{.ElapsedTime}}{{.Append}}`
 
-var whichStepper = 0
-var count = 0
+var whichStepper int
+var count int
 
 func forAllSteppers() {
 	tasks := progressbar.NewTasks(progressbar.New())
@@ -50,7 +50,7 @@ func forAllSteppers() {
 			),
 			progressbar.WithTaskAddBarTitle("Task "+strconv.Itoa(i)), // fmt.Sprintf("Task %v", i)),
 			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) {
-				for max, ix := bar.UpperBound(), int64(0); ix < max; ix++ {
+				for ub, ix := bar.UpperBound(), int64(0); ix < ub; ix++ {
 					ms := time.Duration(10 + rand.Intn(300)) //nolint:gosec //just a demo
 					time.Sleep(time.Millisecond * ms)
 					bar.Step(1)
@@ -59,7 +59,7 @@ func forAllSteppers() {
 		)
 	}
 
-	tasks.Wait()
+	tasks.Wait() // start waiting for all tasks completed gracefully
 }
 
 func main() {
