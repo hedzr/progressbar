@@ -14,6 +14,9 @@ Its original sample is pip installing ui.
 
 ## History
 
+- v1.1.5
+  - security patch: upgrade deps for vuln report on golang.org/x/net
+
 - v1.1.3
   - improving coding style, and more docs
   - allow user-defined data packaged and applied to bar building: `SchemaData.Data any` added
