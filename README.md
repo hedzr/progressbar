@@ -8,7 +8,7 @@ An asynchronous, multitask console/terminal progressbar widget. The main look of
 
 ![stepper-0](https://github.com/hzimg/blog-pics/blob/master/Picsee/stepper-0.mov.webp?raw=true)
 
-Its original sample is pip installing ui.
+Its original sample is pip installing ui, or python [rich](https://github.com/Textualize/rich)-like progressbar.
 
 > To simplify our maintaining jobs, this repo was only tested at go1.18+.
 
