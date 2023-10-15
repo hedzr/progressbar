@@ -14,6 +14,9 @@ Its original sample is pip installing ui, or python [rich](https://github.com/Te
 
 ## History
 
+- v1.1.6
+  - security patch: upgrade golang.org/x/net to 0.17.0
+
 - v1.1.5
   - security patch: upgrade deps for vuln report on golang.org/x/net
 
