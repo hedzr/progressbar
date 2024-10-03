@@ -35,25 +35,27 @@ type (
 		Window            SMALL_RECT
 		MaximumWindowSize COORD
 	}
+	CONSOLE_CURSOR_INFO struct {
+		Size    uint32
+		Visible int32
+	}
 )
 
 var (
 	getConsoleScreenBufferInfoProc *syscall.LazyProc
 	getConsoleCursorPositionProc   *syscall.LazyProc
 	setConsoleCursorPositionProc   *syscall.LazyProc
-	hideCursorProc                 *syscall.LazyProc
-	showCursorProc                 *syscall.LazyProc
+	getConsoleCursorInfoProc       *syscall.LazyProc
+	setConsoleCursorInfoProc       *syscall.LazyProc
 )
 
-func initSyscall() {
-	if getConsoleScreenBufferInfo == nil {
-		kernel32 := syscall.NewLazyDLL("kernel32.dll")
-		getConsoleScreenBufferInfoProc = kernel32.NewProc("GetConsoleScreenBufferInfo")
-		getConsoleCursorPositionProc = kernel32.NewProc("GetConsoleCursorPosition")
-		setConsoleCursorPositionProc = kernel32.NewProc("SetConsoleCursorPosition")
-		hideCursorProc = kernel32.NewProc("HideCursor")
-		showCursorProc = kernel32.NewProc("ShowCursor")
-	}
+func init() {
+	kernel32 := syscall.NewLazyDLL("kernel32.dll")
+	getConsoleCursorInfoProc = kernel32.NewProc("GetConsoleCursorInfo")
+	setConsoleCursorInfoProc = kernel32.NewProc("SetConsoleCursorInfo")
+	getConsoleScreenBufferInfoProc = kernel32.NewProc("GetConsoleScreenBufferInfo")
+	getConsoleCursorPositionProc = kernel32.NewProc("GetConsoleCursorPosition")
+	setConsoleCursorPositionProc = kernel32.NewProc("SetConsoleCursorPosition")
 }
 
 // checkError evaluates the results of a Windows API call and returns the error if it failed.
@@ -105,14 +107,41 @@ func getConsoleCursorPosition(handle uintptr) (coord COORD, err error) {
 	return
 }
 
-func hideCursor() (err error) {
-	err = checkError(hideCursorProc.Call())
+func showHideCursor(visible bool) (err error) {
+
+	var handle uintptr
+
+	handle, err = getStdHandle(syscall.STD_OUTPUT_HANDLE) // syscall.Handle(os.Stdout.Fd())
+
+	if err != nil {
+		return
+	}
+
+	var cursorInfo CONSOLE_CURSOR_INFO
+	err = checkError(getConsoleCursorInfoProc.Call(uintptr(handle), uintptr(unsafe.Pointer(&cursorInfo))))
+
+	if err != nil {
+		return
+	}
+
+	cursorInfo.Visible = func() int32 {
+		if visible {
+			return 1
+		} else {
+			return 0
+		}
+	}()
+
+	err = checkError(setConsoleCursorInfoProc.Call(uintptr(handle), uintptr(unsafe.Pointer(&cursorInfo))))
 	return
 }
 
-func showCursor() (err error) {
-	err = checkError(showCursorProc.Call())
-	return
+func hideCursor() error {
+	return showHideCursor(false)
+}
+
+func showCursor() error {
+	return showHideCursor(true)
 }
 
 // Up moves cursor up by n
