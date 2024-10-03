@@ -14,6 +14,10 @@ Its original sample is pip installing ui, or python [rich](https://github.com/Te
 
 ## History
 
+- v1.1.9
+  - security patches
+  - fixed [#4](https://github.com/hedzr/progressbar/pull/4): cursor hide/show on windows platform, thanks [@fireflycons](https://github.com/fireflycons)
+
 - v1.1.8
   - security patch: upgrade golang.org/x/net to 0.23.0
 
