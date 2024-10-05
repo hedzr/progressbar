@@ -31,8 +31,8 @@ func doEachGroup(group []string) {
 
 func downloadGroups() {
 	for _, group := range [][]string{
-		{"1.14.2", "1.15.1"},
-		{"1.16.1", "1.17.1", "1.18.3"},
+		{"1.14.1", "1.15.1"},
+		{"1.16.1", "1.17.1", "1.18.1"},
 	} {
 		doEachGroup(group)
 	}
