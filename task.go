@@ -48,7 +48,7 @@ func NewTasks(bar MultiPB) *Tasks {
 
 type Tasks struct {
 	bar   MultiPB
-	tasks []*aTask
+	tasks []*DownloadTask
 	wg    sync.WaitGroup
 }
 
