@@ -73,6 +73,9 @@ type pbar struct {
 }
 
 func (pb *pbar) Close() {
+	pb.muPainting.Lock()
+	defer pb.muPainting.Unlock()
+
 	// if atomic.CompareAndSwapInt32(&pb.closed, 0, 1) {
 	// 	close(pb.sigExit)
 	// 	close(pb.sigRedraw)
@@ -83,15 +86,24 @@ func (pb *pbar) LowerBound() int64 { return pb.min }
 func (pb *pbar) UpperBound() int64 { return pb.max }
 
 func (pb *pbar) UpdateRange(min, max int64) {
+	pb.muPainting.Lock()
+	defer pb.muPainting.Unlock()
+
 	pb.min, pb.max = min, max
 }
 
 func (pb *pbar) Step(delta int64) {
+	pb.muPainting.Lock()
+	defer pb.muPainting.Unlock()
+
 	pb.read += delta
 	pb.invalidate()
 }
 
 func (pb *pbar) Write(data []byte) (n int, err error) {
+	pb.muPainting.Lock()
+	defer pb.muPainting.Unlock()
+
 	n = len(data)
 	pb.read += int64(n)
 	pb.invalidate()
