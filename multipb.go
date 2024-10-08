@@ -50,9 +50,8 @@ type mpbar struct {
 
 	rw sync.RWMutex
 
-	dirty  int32
-	lines  int32
-	closed int32
+	dirtyFlag int32
+	closed    int32
 }
 
 func (mpb *mpbar) Close() {
@@ -63,14 +62,17 @@ func (mpb *mpbar) Close() {
 			mpb.rw.Lock()
 			defer mpb.rw.Unlock()
 
+			close(mpb.sigRedraw)
+			mpb.sigRedraw = nil
+
 			for _, pb := range mpb.bars {
 				pb.Close()
 			}
 			mpb.bars = nil
+		} else {
+			close(mpb.sigRedraw)
+			mpb.sigRedraw = nil
 		}
-
-		close(mpb.sigRedraw)
-		mpb.sigRedraw = nil
 	}
 }
 
@@ -126,10 +128,21 @@ func (mpb *mpbar) redrawNow() {
 
 	defer mpb.rw.RUnlock()
 
+	if atomic.LoadInt32(&mpb.closed) == 1 {
+		if ss, ok := mpb.out.(interface{ Sync() error }); ok {
+			_ = ss.Sync()
+		}
+		if ss, ok := mpb.out.(interface{ Flush() error }); ok {
+			_ = ss.Flush()
+		}
+		return
+	}
+
 	var done = true
 	var cnt int
 
-	if !atomic.CompareAndSwapInt32(&mpb.dirty, 0, 1) {
+	var first = atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 0, 1)
+	if !first {
 		cursor.Left(1000)
 		cursor.Up(len(mpb.bars))
 	}
@@ -147,13 +160,20 @@ func (mpb *mpbar) redrawNow() {
 	// _, _ = fmt.Fprintf(tui, "%v tasks activate [%v, %v, %v lines]\n", cnt, width, tui.Height(), len(mpb.bars)+1)
 	// _ = tui.FlushN(len(mpb.bars) + 1)
 
+	// if first {
+	// 	cursor.Save()
+	// }
+
 	if done {
+		// mpb.out.Flush()
+		atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 1, 0)
 		if mpb.onDone != nil {
 			cb := mpb.onDone
 			mpb.onDone = nil
-			cb(mpb)
 
 			mpb.sigRedraw <- struct{}{}
+
+			cb(mpb)
 		}
 	}
 }
