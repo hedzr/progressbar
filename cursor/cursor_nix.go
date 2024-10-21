@@ -39,7 +39,7 @@ func Left(n int) {
 
 // showCursor shows the cursor.
 func showCursor() {
-	safeWrite([]byte(aecHideCursor))
+	safeWrite([]byte(aecShowCursor))
 }
 
 // hideCursor hides the cursor.
