@@ -164,9 +164,6 @@ func (j *Job) doWorker(bar progressbar.PB, exitCh <-chan struct{}) {
 
 	for {
 		select {
-		// case <-t.C: // if totalTicks timer ends
-		// 	return
-
 		case <-ticker.C: // or update pbar every 50ms
 			if j.Update(100) >= j.totalTicks {
 				return
@@ -195,6 +192,7 @@ func doEachGroupWithTasks(group []string) {
 			progressbar.WithBarOnStart(job.onStart),
 			progressbar.WithBarWorker(job.doWorker),
 			progressbar.WithBarOnCompleted(job.onCompleted),
+			progressbar.WithBarStepper(whichStepper),
 		)
 
 		wg.Add(1)

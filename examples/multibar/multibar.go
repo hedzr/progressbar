@@ -58,7 +58,6 @@ func doEachGroup2(group []string) {
 				bar.UpdateRange(0, task.Resp.ContentLength)
 
 				task.Writer = io.MultiWriter(task.File, bar)
-
 			}
 			return
 		}),
@@ -67,7 +66,6 @@ func doEachGroup2(group []string) {
 
 	for _, ver := range group {
 		url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
-		// fn := "go" + ver + ".src.tar.gz"                           // fn := fmt.Sprintf("go%v.src.tar.gz", ver)
 		// fmt.Printf("adding %v (title: %v)\n", url1.String(), url1.Title())
 		tasks.Add(url1.String(), url1,
 			progressbar.WithBarStepper(whichStepper),
