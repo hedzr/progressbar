@@ -14,40 +14,7 @@ Its original sample is pip installing ui, or python [rich](https://github.com/Te
 
 ## History
 
-- v1.1.9
-  - security patches
-  - fixed [#4](https://github.com/hedzr/progressbar/pull/4): cursor hide/show on windows platform, thanks [@fireflycons](https://github.com/fireflycons)
-
-- v1.1.8
-  - security patch: upgrade golang.org/x/net to 0.23.0
-
-- v1.1.7
-  - security patch: upgrade golang.org/x/crypto to 0.17.0
-
-- v1.1.6
-  - security patch: upgrade golang.org/x/net to 0.17.0
-
-- v1.1.5
-  - security patch: upgrade deps for vuln report on golang.org/x/net
-
-- v1.1.3
-  - improving coding style, and more docs
-  - allow user-defined data packaged and applied to bar building: `SchemaData.Data any` added
-
-- v1.1.1
-  - fixed the minor display matters
-  - added `WithBarIndentChars(s)`, `WithBarAppendText(s)`, `WithBarPrependText(s)`, and `WithBarExtraTailSpaces(howMany)`
-  - added `WithBarOnDataPrepared(cb)` so you can observe and postprocess the data provided to bar layout template.
-
-- v1.1.0
-  - fixed possible broken output in escape sequences
-  - fixed formatting and calculating when i made it public
-  - fixed setting schema when i made it public
-  - fixed data race posibility when using shared CPT tool
-  - added `schema` sample app to show you how to customize me
-
-- v1.0.0
-  - first release
+- See the [CHANGELOG](https://github.com/hedzr/progressbar/blob/master/CHANGELOG)
 
 ## Guide
 
