@@ -176,7 +176,10 @@ func (j *Job) onCompleted(bar progressbar.PB) {
 }
 
 func doEachGroupWithTasks(mpb progressbar.MultiPB, group []string) {
-	// mpb := progressbar.New()
+	if mpb == nil {
+		mpb = progressbar.New()
+		defer mpb.Close() // cleanup
+	}
 
 	var jobs []*Job
 	var wg sync.WaitGroup
@@ -201,11 +204,9 @@ func doEachGroupWithTasks(mpb progressbar.MultiPB, group []string) {
 	}
 
 	wg.Wait() // waiting for all tasks done.
-
-	// mpb.Close() // cleanup
 }
 
-func downloadGroups() {
+func downloadGroups1Worked() {
 	mpb := progressbar.New()
 	defer mpb.Close() // cleanup
 
@@ -231,6 +232,47 @@ func downloadGroups() {
 	// mpb.Close() // cleanup
 }
 
+func downloadGroups2Worked() {
+	mpb := progressbar.New()
+
+	for _, group := range [][]string{
+		{"1.14.1", "1.15.1"},
+		{"1.16.1", "1.17.1", "1.18.1"},
+	} {
+		doEachGroupWithTasks(mpb, group)
+	}
+
+	mpb.Close() // cleanup
+	mpb = nil
+
+	mpb = progressbar.New()
+
+	for _, group := range [][]string{
+		{"1.20.1", "1.21.1"},
+		{"1.22.1"},
+	} {
+		doEachGroupWithTasks(mpb, group)
+	}
+
+	mpb.Close() // cleanup
+}
+
+func downloadGroups3Worked() {
+	for _, group := range [][]string{
+		{"1.14.1", "1.15.1"},
+		{"1.16.1", "1.17.1", "1.18.1"},
+	} {
+		doEachGroupWithTasks(nil, group)
+	}
+
+	for _, group := range [][]string{
+		{"1.20.1", "1.21.1"},
+		{"1.22.1"},
+	} {
+		doEachGroupWithTasks(nil, group)
+	}
+}
+
 func main() {
 	cursor.Hide()
 	defer cursor.Show()
@@ -250,5 +292,19 @@ func main() {
 		}
 	}
 
-	downloadGroups()
+	var algor int
+	if s := os.Getenv("ALGOR"); s != "" {
+		var err error
+		if algor, err = strconv.Atoi(s); err != nil {
+			log.Fatalf("Wrong environment variable ALGOR found. It MUST BE 0 or 1-3. Cause: %v", err)
+		}
+	}
+	switch algor {
+	case 3:
+		downloadGroups3Worked()
+	case 2:
+		downloadGroups2Worked()
+	default:
+		downloadGroups1Worked()
+	}
 }
