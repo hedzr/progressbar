@@ -175,8 +175,8 @@ func (j *Job) onCompleted(bar progressbar.PB) {
 	// trigger terminated
 }
 
-func doEachGroupWithTasks(group []string) {
-	mpb := progressbar.New()
+func doEachGroupWithTasks(mpb progressbar.MultiPB, group []string) {
+	// mpb := progressbar.New()
 
 	var jobs []*Job
 	var wg sync.WaitGroup
@@ -202,16 +202,33 @@ func doEachGroupWithTasks(group []string) {
 
 	wg.Wait() // waiting for all tasks done.
 
-	mpb.Close() // cleanup
+	// mpb.Close() // cleanup
 }
 
 func downloadGroups() {
+	mpb := progressbar.New()
+	defer mpb.Close() // cleanup
+
 	for _, group := range [][]string{
 		{"1.14.1", "1.15.1"},
 		{"1.16.1", "1.17.1", "1.18.1"},
 	} {
-		doEachGroupWithTasks(group)
+		doEachGroupWithTasks(mpb, group)
 	}
+
+	// mpb.Close() // cleanup
+	// mpb = nil
+
+	// mpb = progressbar.New()
+
+	for _, group := range [][]string{
+		{"1.20.1", "1.21.1"},
+		{"1.22.1"},
+	} {
+		doEachGroupWithTasks(mpb, group)
+	}
+
+	// mpb.Close() // cleanup
 }
 
 func main() {

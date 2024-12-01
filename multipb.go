@@ -52,6 +52,7 @@ type mpbar struct {
 
 	dirtyFlag int32
 	closed    int32
+	lines     int
 }
 
 func (mpb *mpbar) Close() {
@@ -91,8 +92,8 @@ func (mpb *mpbar) Add(maxBytes int64, title string, opts ...Opt) (index int) {
 	pb.stepper.SetIndentChars(indentChars)
 
 	mpb.rw.Lock()
-	defer mpb.rw.Unlock()
 	mpb.bars = append(mpb.bars, pb)
+	mpb.rw.Unlock()
 	return len(mpb.bars) - 1
 }
 
@@ -144,35 +145,34 @@ func (mpb *mpbar) redrawNow() {
 	var first = atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 0, 1)
 	if !first {
 		cursor.Left(1000)
-		cursor.Up(len(mpb.bars))
+		cursor.Up(len(mpb.bars) - mpb.lines)
 	}
 
-	for _, pb := range mpb.bars {
-		str := pb.String()
-		_, _ = mpb.out.Write([]byte(str))
-		_, _ = mpb.out.Write([]byte("\n"))
-		// _, _ = fmt.Fprintf(mpb.out, "%s%s\n", indentChars, str)
-		if !pb.completed {
-			done = false
-			cnt++
+	for i, pb := range mpb.bars {
+		if i >= mpb.lines {
+			str := pb.String()
+			_, _ = mpb.out.Write([]byte(str))
+			_, _ = mpb.out.Write([]byte("\n"))
+			// _, _ = fmt.Fprintf(mpb.out, "%s%s\n", indentChars, str)
+			if !pb.completed {
+				done = false
+				cnt++
+			}
 		}
 	}
+
 	// _, _ = fmt.Fprintf(tui, "%v tasks activate [%v, %v, %v lines]\n", cnt, width, tui.Height(), len(mpb.bars)+1)
 	// _ = tui.FlushN(len(mpb.bars) + 1)
 
-	// if first {
-	// 	cursor.Save()
-	// }
-
 	if done {
 		// mpb.out.Flush()
-		atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 1, 0)
+		if atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 1, 0) {
+			mpb.lines = len(mpb.bars)
+		}
 		if mpb.onDone != nil {
 			cb := mpb.onDone
 			mpb.onDone = nil
-
-			mpb.sigRedraw <- struct{}{}
-
+			// mpb.sigRedraw <- struct{}{}
 			cb(mpb)
 		}
 	}
