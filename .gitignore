@@ -5,6 +5,7 @@ _bgo
 tools/bgo/go.work
 go.work
 .local/
+lint.txt
 
 *.py
 *.pyc
@@ -63,7 +64,6 @@ cover.html
 
 #*_string.go
 #stringer/
-
 
 ### Go template
 # Binaries for programs and plugins
