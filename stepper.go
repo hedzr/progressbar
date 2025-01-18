@@ -15,7 +15,7 @@ import (
 
 func MaxSteppers() int { return len(steppers) }
 
-type barT interface {
+type BarT interface {
 	String(pb *pbar) string
 	Bytes(pb *pbar) []byte
 
@@ -25,6 +25,9 @@ type barT interface {
 	SetPrependText(s string)
 	SetAppendText(s string)
 	SetExtraTailSpaces(howMany int)
+
+	SetBaseColor(clr int)
+	SetHighlightColor(clr int)
 }
 
 var steppers = map[int]*stepper{
@@ -53,6 +56,14 @@ type stepper struct {
 	clrHighlight     int
 	barWidth         int
 	safetyTailSpaces int
+}
+
+func (s *stepper) SetBaseColor(clr int) {
+	s.clrBase = clr
+}
+
+func (s *stepper) SetHighlightColor(clr int) {
+	s.clrHighlight = clr
 }
 
 func (s *stepper) SetSchema(schema string) {

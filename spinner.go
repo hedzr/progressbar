@@ -110,6 +110,16 @@ type spinner struct {
 	barWidth         int
 	safetyTailSpaces int
 	gauge            int32
+	clrBase          int
+	clrHighlight     int
+}
+
+func (s *spinner) SetBaseColor(clr int) {
+	s.clrBase = clr
+}
+
+func (s *spinner) SetHighlightColor(clr int) {
+	s.clrHighlight = clr
 }
 
 func (s *spinner) SetSchema(schema string) {
