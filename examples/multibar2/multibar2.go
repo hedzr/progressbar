@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"math/rand"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -17,9 +16,10 @@ import (
 
 	"github.com/hedzr/progressbar"
 	"github.com/hedzr/progressbar/cursor"
+	"github.com/hedzr/progressbar/tool"
 )
 
-var whichStepper = 1
+var whichStepper = 0
 
 type TitledUrl string
 
@@ -35,70 +35,71 @@ func (t TitledUrl) Title() string {
 	return path.Base(parse.Path)
 }
 
-func doEachGroup2(group []string) {
-	tasks := progressbar.NewDownloadTasks(progressbar.New(),
-		progressbar.WithDownloadTaskOnStart(func(task *progressbar.DownloadTask, bar progressbar.PB) (err error) {
-			if task.Req == nil {
-				task.Req, err = http.NewRequest("GET", task.Url, nil) //nolint:gocritic
-				if err != nil {
-					log.Printf("Error: %v", err)
-					return
-				}
-				task.File, err = os.OpenFile(task.Filename, os.O_CREATE|os.O_WRONLY, 0o644)
-				if err != nil {
-					log.Printf("Error: %v", err)
-					return
-				}
-				task.Resp, err = http.DefaultClient.Do(task.Req)
-				if err != nil {
-					log.Printf("Error: %v", err)
-					return
-				}
+// func doEachGroup2(group []string) {
+// 	tasks := progressbar.NewDownloadTasks(
+// 		progressbar.New(),
+// 		progressbar.WithDownloadTaskOnStart(func(task *progressbar.DownloadTask, bar progressbar.PB) (err error) {
+// 			if task.Req == nil {
+// 				task.Req, err = http.NewRequest("GET", task.Url, nil) //nolint:gocritic
+// 				if err != nil {
+// 					log.Printf("Error: %v", err)
+// 					return
+// 				}
+// 				task.File, err = os.OpenFile(task.Filename, os.O_CREATE|os.O_WRONLY, 0o644)
+// 				if err != nil {
+// 					log.Printf("Error: %v", err)
+// 					return
+// 				}
+// 				task.Resp, err = http.DefaultClient.Do(task.Req)
+// 				if err != nil {
+// 					log.Printf("Error: %v", err)
+// 					return
+// 				}
 
-				const BUFFERSIZE = 4096
-				task.Buffer = make([]byte, BUFFERSIZE)
+// 				const BUFFERSIZE = 4096
+// 				task.Buffer = make([]byte, BUFFERSIZE)
 
-				bar.UpdateRange(0, task.Resp.ContentLength)
+// 				bar.UpdateRange(0, task.Resp.ContentLength)
 
-				task.Writer = io.MultiWriter(task.File, bar)
+// 				task.Writer = io.MultiWriter(task.File, bar)
 
-			}
-			return
-		}),
-	)
-	defer tasks.Close()
+// 			}
+// 			return
+// 		}),
+// 	)
+// 	defer tasks.Close()
 
-	for _, ver := range group {
-		url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
-		// fn := "go" + ver + ".src.tar.gz"                           // fn := fmt.Sprintf("go%v.src.tar.gz", ver)
-		// fmt.Printf("adding %v (title: %v)\n", url1.String(), url1.Title())
-		tasks.Add(url1.String(), url1,
-			progressbar.WithBarStepper(whichStepper),
-		)
-	}
+// 	for _, ver := range group {
+// 		url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+// 		// fn := "go" + ver + ".src.tar.gz"                           // fn := fmt.Sprintf("go%v.src.tar.gz", ver)
+// 		// fmt.Printf("adding %v (title: %v)\n", url1.String(), url1.Title())
+// 		tasks.Add(url1.String(), url1,
+// 			progressbar.WithBarStepper(whichStepper),
+// 		)
+// 	}
 
-	log.Printf("tasks.Wait() for group %v", group)
-	tasks.Wait() // start waiting for all tasks completed gracefully
-	log.Printf("tasks.Wait() ends for group %v", group)
-}
+// 	log.Printf("tasks.Wait() for group %v", group)
+// 	tasks.Wait() // start waiting for all tasks completed gracefully
+// 	log.Printf("tasks.Wait() ends for group %v", group)
+// }
 
-func doEachGroup(group []string) {
-	tasks := progressbar.NewDownloadTasks(progressbar.New())
-	defer tasks.Close()
+// func doEachGroup(group []string) {
+// 	tasks := progressbar.NewDownloadTasks(progressbar.New())
+// 	defer tasks.Close()
 
-	for _, ver := range group {
-		url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
-		// fn := "go" + ver + ".src.tar.gz"                           // fn := fmt.Sprintf("go%v.src.tar.gz", ver)
-		// fmt.Printf("adding %v (title: %v)\n", url1.String(), url1.Title())
-		tasks.Add(url1.String(), url1,
-			progressbar.WithBarStepper(whichStepper),
-		)
-	}
+// 	for _, ver := range group {
+// 		url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+// 		// fn := "go" + ver + ".src.tar.gz"                           // fn := fmt.Sprintf("go%v.src.tar.gz", ver)
+// 		// fmt.Printf("adding %v (title: %v)\n", url1.String(), url1.Title())
+// 		tasks.Add(url1.String(), url1,
+// 			progressbar.WithBarStepper(whichStepper),
+// 		)
+// 	}
 
-	log.Printf("tasks.Wait() for group %v", group)
-	tasks.Wait() // start waiting for all tasks completed gracefully
-	log.Printf("tasks.Wait() ends for group %v", group)
-}
+// 	log.Printf("tasks.Wait() for group %v", group)
+// 	tasks.Wait() // start waiting for all tasks completed gracefully
+// 	log.Printf("tasks.Wait() ends for group %v", group)
+// }
 
 //
 
@@ -134,11 +135,12 @@ func (j *Job) Update(delta int) int64 {
 		j.written += int64(delta)
 		_, _ = j.writer.Write(data)
 		j.mpb.Redraw()
-		return j.written
+	} else {
+		data := make([]byte, delta)
+		j.written += int64(delta)
+		_, _ = j.writer.Write(data)
 	}
-	data := make([]byte, delta)
-	j.written += int64(delta)
-	_, _ = j.writer.Write(data)
+	time.Sleep(time.Millisecond * 20)
 	return j.written
 }
 
@@ -175,101 +177,115 @@ func (j *Job) onCompleted(bar progressbar.PB) {
 	// trigger terminated
 }
 
-func doEachGroupWithTasks(mpb progressbar.MultiPB, group []string) {
+type groupedJobs struct {
+	group []string
+	title string
+}
+
+func (s groupedJobs) Title() string { return s.title }
+
+func doEachGroupWithTasks(mpb progressbar.GroupedPB, wg *sync.WaitGroup, group groupedJobs) {
 	if mpb == nil {
-		mpb = progressbar.New()
+		mpb := progressbar.New().(progressbar.GroupedPB)
 		defer mpb.Close() // cleanup
+	}
+	if wg == nil {
+		wg = &sync.WaitGroup{}
+		defer wg.Wait() // waiting for all tasks done.
 	}
 
 	var jobs []*Job
-	var wg sync.WaitGroup
 
-	for _, ver := range group {
+	for _, ver := range group.group {
 		url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
-		job := &Job{Url: url1, mpb: mpb, wg: &wg}
+		job := &Job{Url: url1, mpb: mpb, wg: wg}
 
 		job.totalTicks = int64(3500 + int(rand.Int31n(2000))) // 3500ms
-		job.index = mpb.Add(
+		job.index = mpb.AddToGroup(
+			group.Title(),
 			job.totalTicks,
 			url1.Title(),
 			progressbar.WithBarOnStart(job.onStart),
 			progressbar.WithBarWorker(job.doWorker),
 			progressbar.WithBarOnCompleted(job.onCompleted),
 			progressbar.WithBarStepper(whichStepper),
+			progressbar.WithBarStepperPostInit(func(bar progressbar.BarT) {
+				bar.SetHighlightColor(tool.FgDarkGray)
+			}),
 		)
 
 		wg.Add(1)
 		jobs = append(jobs, job)
 		job.Start()
 	}
-
-	wg.Wait() // waiting for all tasks done.
 }
 
 func downloadGroups1Worked() {
-	mpb := progressbar.New()
+	// mpb := progressbar.NewGPB(progressbar.WithOnDone(func(mpb progressbar.MultiPB) {
+	// 	println()
+	// 	println("DONE.")
+	// }))
+	mpb := progressbar.NewGPB()
 	defer mpb.Close() // cleanup
 
-	for _, group := range [][]string{
-		{"1.14.1", "1.15.1"},
-		{"1.16.1", "1.17.1", "1.18.1"},
+	var wg sync.WaitGroup
+	defer wg.Wait() // waiting for all tasks done.
+
+	for _, group := range []groupedJobs{
+		{[]string{"1.14.1", "1.15.1"}, "AAA"},
+		{[]string{"1.16.1", "1.17.1", "1.18.1"}, "BBB"},
 	} {
-		doEachGroupWithTasks(mpb, group)
+		doEachGroupWithTasks(mpb, &wg, group)
 	}
 
-	// mpb.Close() // cleanup
-	// mpb = nil
-
-	// mpb = progressbar.New()
-
-	for _, group := range [][]string{
-		{"1.20.1", "1.21.1"},
-		{"1.22.1"},
+	for _, group := range []groupedJobs{
+		{[]string{"1.20.1", "1.21.1"}, "CCC"},
+		{[]string{"1.22.1"}, "DDD"},
 	} {
-		doEachGroupWithTasks(mpb, group)
+		doEachGroupWithTasks(mpb, &wg, group)
 	}
 
 	// mpb.Close() // cleanup
 }
 
 func downloadGroups2Worked() {
-	mpb := progressbar.New()
+	mpb := progressbar.New().(progressbar.GroupedPB)
 
-	for _, group := range [][]string{
-		{"1.14.1", "1.15.1"},
-		{"1.16.1", "1.17.1", "1.18.1"},
+	for _, group := range []groupedJobs{
+		{[]string{"1.14.1", "1.15.1"}, "AAA"},
+		{[]string{"1.16.1", "1.17.1", "1.18.1"}, "BBB"},
 	} {
-		doEachGroupWithTasks(mpb, group)
+		doEachGroupWithTasks(mpb, nil, group)
 	}
 
 	mpb.Close() // cleanup
 	mpb = nil
 
-	mpb = progressbar.New()
+	mpb = progressbar.New().(progressbar.GroupedPB)
 
-	for _, group := range [][]string{
-		{"1.20.1", "1.21.1"},
-		{"1.22.1"},
+	for _, group := range []groupedJobs{
+		{[]string{"1.20.1", "1.21.1"}, "CCC"},
+		{[]string{"1.22.1"}, "DDD"},
 	} {
-		doEachGroupWithTasks(mpb, group)
+		doEachGroupWithTasks(mpb, nil, group)
 	}
 
 	mpb.Close() // cleanup
 }
 
 func downloadGroups3Worked() {
-	for _, group := range [][]string{
-		{"1.14.1", "1.15.1"},
-		{"1.16.1", "1.17.1", "1.18.1"},
+	for _, group := range []groupedJobs{
+		{[]string{"1.14.1", "1.15.1"}, "AAA"},
+		{[]string{"1.16.1", "1.17.1", "1.18.1"}, "BBB"},
 	} {
-		doEachGroupWithTasks(nil, group)
+		doEachGroupWithTasks(nil, nil, group)
 	}
 
-	for _, group := range [][]string{
-		{"1.20.1", "1.21.1"},
-		{"1.22.1"},
+	for _, group := range []groupedJobs{
+		{[]string{"1.20.1", "1.21.1"}, "CCC"},
+		{[]string{"1.22.1"}, "DDD"},
 	} {
-		doEachGroupWithTasks(nil, group)
+		doEachGroupWithTasks(nil, nil, group)
 	}
 }
 
