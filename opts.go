@@ -23,6 +23,12 @@ func WithBarStepper(whichOne int) Opt {
 	}
 }
 
+func WithBarStepperPostInit(cb func(bar BarT)) Opt {
+	return func(pb *pbar) {
+		pb.stepperPostInit = cb
+	}
+}
+
 func WithBarUpperBound(ub int64) Opt {
 	return func(pb *pbar) {
 		pb.max = ub

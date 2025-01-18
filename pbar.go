@@ -52,8 +52,9 @@ type pbar struct {
 	stopTime  time.Time
 	startTime time.Time
 
-	stepper barT
-	mpbar   MultiPB
+	stepper         BarT           // stepper or spinner here
+	mpbar           MultiPB        //
+	stepperPostInit func(bar BarT) //
 
 	worker         Worker
 	onComp         OnCompleted
@@ -130,6 +131,10 @@ func (pb *pbar) redraw() {
 func (pb *pbar) run() {
 	if pb.onStart != nil {
 		pb.onStart(pb)
+	}
+
+	if pb.stepperPostInit != nil {
+		pb.stepperPostInit(pb.stepper)
 	}
 
 	if pb.worker != nil {
