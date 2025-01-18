@@ -7,6 +7,8 @@ func Add(maxBytes int64, title string, opts ...Opt) MultiPB {
 	return defaultMPB
 }
 
+var defaultMPB = multiBar2()
+
 // New creates a managed MultiPB progressbar object so you
 // can setup the properties of the bar.
 //
@@ -30,7 +32,13 @@ func Add(maxBytes int64, title string, opts ...Opt) MultiPB {
 // The MultiPB object can be added into Tasks container. For
 // more information to see NewTasks() and NewDownloadTasks().
 func New(opts ...MOpt) MultiPB {
-	bar := multiBar(opts...)
+	bar := multiBar2(opts...)
+	return bar
+}
+
+// NewGPB creates a grouped MultiPB (GroupedPB) instance.
+func NewGPB(opts ...MOpt) GroupedPB {
+	bar := multiBar2(opts...)
 	return bar
 }
 

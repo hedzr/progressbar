@@ -38,8 +38,6 @@ func multiBar(opts ...MOpt) *mpbar {
 	return bar
 }
 
-var defaultMPB = multiBar()
-
 type mpbar struct {
 	out       io.Writer
 	sigRedraw chan struct{}
