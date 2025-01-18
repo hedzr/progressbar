@@ -71,6 +71,9 @@ func (mpb *mpbar) Close() {
 			}
 			mpb.bars = nil
 		} else {
+			mpb.rw.Lock()
+			defer mpb.rw.Unlock()
+
 			close(mpb.sigRedraw)
 			mpb.sigRedraw = nil
 		}
@@ -79,8 +82,12 @@ func (mpb *mpbar) Close() {
 
 func (mpb *mpbar) Redraw() {
 	if atomic.LoadInt32(&mpb.closed) == 0 {
-		if mpb.sigRedraw != nil {
-			mpb.sigRedraw <- struct{}{}
+		var sig chan struct{}
+		mpb.rw.RLock()
+		sig = mpb.sigRedraw
+		mpb.rw.RUnlock()
+		if sig != nil {
+			sig <- struct{}{}
 		}
 	}
 }
