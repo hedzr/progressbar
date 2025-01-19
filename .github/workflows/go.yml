@@ -12,12 +12,28 @@ on:
 
 #on: [push, pull_request]
 
+env:
+  OSes: windows linux darwin
+  ARCHes: amd64 arm64
+  APPNAME: "progressbar"
+  APPS: ""                    # optional, a space separated name list.
+  FROM_FOLDER: "."            # Use "." for building "cli"; use "./_examples" for building them
+  IMAGE_NAME: ""
+  ENABLE_DOCKER: 0
+  ENABLE_Apps_Building: 0
+  ENABLE_FULL_ARCHes_TEST: 0
+  ENABLE_Coveralls_Sender: 1  # need COVERALLS_REPO_TOKEN or CODECOV_TOKEN
+  ENABLE_Simple_Release: 1    # simple (1), or normal (0): build+docker+brew+release
+  ENABLE_Homebrew: 0
+  #HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+  #GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
 
   test:
     strategy:
       matrix:
-        go-version: [ 1.18.x, 1.19.x ]
+        go-version: [ 1.18.x, 1.19.x, 1.23.x ]
         #os: [ubuntu-latest, macos-latest, windows-latest]
         os: [ ubuntu-latest ]
       fail-fast: false
@@ -37,11 +53,28 @@ jobs:
             ${{ runner.os }}-go-
       - name: Test
         run: |
-          # for GOOS in $(go tool dist list|awk -F'/' '{print $1}'|sort -u); do
-          #   echo -e "\n\nTESTING FOR $GOOS ...\n"
-          #   go test ./...
-          # done
-          go test ./...
+          # # for GOOS in $(go tool dist list|awk -F'/' '{print $1}'|sort -u); do
+          # #   echo -e "\n\nTESTING FOR $GOOS ...\n"
+          # #   go test ./...
+          # # done
+          # go test -v ./...
+          #
+          #
+          # if [[ $ENABLE_FULL_ARCHes_TESTS -eq 1 ]]; then
+          #   for GOOS in $(go tool dist list|awk -F'/' '{print $1}'|sort -u); do
+          #     echo -e "\n\nTESTING FOR $GOOS ...\n"
+          #     go test ./...
+          #   done
+          # else
+          #   GOSUMDB=off go mod download
+          #   # go install -v github.com/swaggo/swag/cmd/swag
+          #   # go generate ./...
+          #   [ -d ./cli ] && go build -v ./cli/... || go build -v ./...
+          #   go test -v ./...
+          # fi
+          go generate ./...
+          [ -d ./cli ] && go build -v ./cli/... || go build -v ./...
+          go test -v ./...
 
   coverage:
     #needs: test
@@ -53,7 +86,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.19.x
+          go-version: 1.22.x
       - name: Checkout code
         uses: actions/checkout@v4
         #with:
@@ -68,9 +101,12 @@ jobs:
         run: go test -v -coverprofile=profile.cov ./...
       - name: Send coverage
         uses: shogo82148/actions-goveralls@v1
+        # if: !startsWith(github.ref, 'refs/tags/v') && env.ENABLE_Coveralls_Sender != 0
+        if: env.ENABLE_Coveralls_Sender != 0
         with:
           path-to-profile: profile.cov
           parallel: true
+          # parallel-finished: true
 
   # notifies coveralls that all test jobs are finished
   finish-coverage:
@@ -82,68 +118,372 @@ jobs:
         with:
           parallel-finished: true
 
+
+  #
+  # https://docs.github.com/en/actions/learn-github-actions/contexts#job-context
+  simple-release:
+    permissions: write-all             # this is the FIX
+    # permissions:                     # this is the FIX
+    #   contents: write
+    #   discussions: write
+    runs-on: ubuntu-latest
+    needs: coverage
+    if: startsWith(github.ref, 'refs/tags/')            # in job.<job-id>.if, 'env' is not available !!
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        if: env.ENABLE_Simple_Release != 0
+      # - name: Generate Changelog
+      #  run: echo "# Good things have arrived" > ${{ github.workspace }}-CHANGELOG.txt
+
+      - name: Set Env
+        shell: bash
+        run: |
+          RELEASE_VERSION=${GITHUB_REF#refs/*/}
+          echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
+          echo "VERSION=${RELEASE_VERSION/v/}" >> $GITHUB_ENV
+
+      # This step reads a file from repo and use it for body of the release
+      # This works on any self-hosted runner OS
+      - name: Read RELNOTES.md and use it as a body of new release
+        id: read_release_notes_0
+        if: startsWith(github.ref, 'refs/tags/v') && env.ENABLE_Simple_Release != 0 && 0 # disable now
+        shell: bash
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          APP_NAME="${GITHUB_REPOSITORY##*/}"
+          APP_NAME=$(echo $APP_NAME | sed 's/^(go-)//' | sed 's/(-go)$//' | tr '[:upper:]' '[:lower:]')
+          if [ $APP_NAME = "cmdrstarter" ]; then APP_NAME=your-starter; fi
+          ACTOR=$(echo $GITHUB_ACTOR | tr '[:upper:]' '[:lower:]')
+          GOT=0
+          for f in RELNOTES relnotes RELNOTES.md REL-NOTES.md relnotes.md rel-notes.md; do
+            if [[ $GOT -eq 0 ]]; then
+              if [ -f $f ]; then
+                r=$(cat $f)
+                # r="${r//'%'/'%25'}"
+                # r="${r//$'\n'/'%0A'}"
+                # r="${r//$'\r'/'%0D'}"
+                r="${r//'{''{'APP_NAME'}''}'/$APP_NAME}"
+                r="${r//'{''{'VERSION'}''}'/$VERSION}"
+                r="${r//'{''{'ACTOR'}''}'/$ACTOR}"
+                r="${r//'{''{'REPO_NAME'}''}'/$REPO_NAME}"
+                r="${r//'{''{'GITHUB_SHA'}''}'/$GITHUB_SHA}"
+                r="${r//'{''{'GITHUB_REF'}''}'/$GITHUB_REF}"
+                r="${r//'{''{'GITHUB_REF_NAME'}''}'/$GITHUB_REF_NAME}"
+                r="${r//'{''{'GITHUB_REPOSITORY'}''}'/$GITHUB_REPOSITORY}"
+                r="${r//'{''{'GITHUB_REPOSITORY_OWNER'}''}'/$GITHUB_REPOSITORY_OWNER}"
+                echo "RELEASE_BODY=$r" >> $GITHUB_OUTPUT
+                GOT=1
+              fi
+            fi
+          done
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: env.ENABLE_Simple_Release != 0
+        with:
+          generate_release_notes: true
+          # body_path: ${{ github.workspace }}-CHANGELOG.txt
+          # body_path: RELNOTES.md
+          # files: |
+          #   LICENSE
+          #   RELNOTES.md
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
+          # body: |
+          #   ${{ steps.read_release_notes_0.outputs.RELEASE_BODY }}
+
   release-build:
-    name: Release Builds
+    permissions: write-all             # this is the FIX
+    # permissions:                     # this is the FIX
+    #   contents: write
+    #   discussions: write
     needs: coverage
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    env:
+      ACTOR_EMAIL: hedzr@duck.com
+      BUMPER_VER: v0.2.0
+      HOMEBREW_TAP: hedzr/homebrew-brew
+      BINARIES_ASC: ./bin/binaries.asc
     steps:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.19.x
+          go-version: 1.21.x
       - name: Checkout code
         uses: actions/checkout@v4
+        #with:
+        #  path: ./src/github.com/${{ github.repository }}
       - uses: actions/cache@v4
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Build linux binaries
+
+      - name: Set Env
+        shell: bash
         run: |
-          # sudo apt-get install -y upx-ucl
-          for GOOS in linux; do
-          for GOARCH in amd64; do
-          for app in multibar multibar_spinner schema simple spinners steppers tasks; do
-            go build -v -ldflags "-s -w" -gcflags=all='-l -B' -trimpath -o ./bin/$app ./examples/$app/...
-            # upx -5 --brute ./bin/$app
-            gzip ./bin/$app
-          done
-          done
-          done
-          ls -la --color ./bin/
+          RELEASE_VERSION=${GITHUB_REF#refs/*/}
+          echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
+          echo "VERSION=${RELEASE_VERSION/v/}" >> $GITHUB_ENV
 
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#      - name: Release
-#        uses: softprops/action-gh-release@v1
-#        if: startsWith(github.ref, 'refs/tags/')
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          files: |
-#            ./bin/*.gz
+      - name: Docker Build
+        ## if: startsWith(github.ref, 'refs/tags/v') || contains(github.ref, '/master')
+        if: startsWith(github.ref, 'refs/tags/v') && env.ENABLE_DOCKER != 0
+        ## if: env.ENABLE_DOCKER != 0
+        env:
+          HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          #IMAGE_NAME: your-starter # never used
+          #IMAGE_TAG:
+          #PORT:
+          #VERSION:
+        shell: bash
+        run: |
+          IMAGE_NAME="${GITHUB_REPOSITORY##*/}"
+          IMAGE_NAME=$(echo $IMAGE_NAME | sed -re 's/^(go-)//' | sed -re 's/(-go)$//' | tr '[:upper:]' '[:lower:]')
+          if [ $IMAGE_NAME = "cmdrstarter" ]; then IMAGE_NAME=your-starter; fi
+          ACTOR=$(echo $GITHUB_ACTOR | tr '[:upper:]' '[:lower:]')
+          #
+          IMAGE_TAG=${GITHUB_REF#*/}
+          IMAGE_TAG=${IMAGE_TAG#*/}
+          IMAGE_TAG=$(echo $IMAGE_TAG | sed -e "s#^v##")
+          echo "Using IMAGE_NAME: $IMAGE_NAME"
+          echo "Using IMAGE_TAG: $IMAGE_TAG"
+          echo "Using ACTOR: $ACTOR"
+          #
+          export TIMESTAMP="$(date -u -Iseconds)"
+          export TIMEZONE="$(cat /etc/timezone)"
+          export GIT_VERSION="$(git describe --tags --abbrev=0 2>/dev/null || echo "$VERSION")"
+          export GIT_REVISION="$(git rev-parse --short HEAD)"
+          export GIT_SUMMARY="$(git describe --tags --dirty --always)"
+          export GIT_DESC="$(git log --oneline -1)"
+          export BUILDER_COMMENT=""
+          echo "Using TIMESTAMP: $TIMESTAMP"
+          echo "Using TIMEZONE: $TIMEZONE"
+          echo "Using GIT_VERSION: $GIT_VERSION"
+          echo "Using GIT_REVISION: $GIT_REVISION"
+          echo "Using GIT_SUMMARY: $GIT_SUMMARY"
+          echo "Using GIT_DESC: $GIT_DESC"
+          #
+          # export VERSION="$(grep -E "Version[ \t]+=[ \t]+" doc.go|grep -Eo "[0-9.]+")"
+          docker build -f app.Dockerfile \
+            --build-arg APPNAME="$IMAGE_NAME" \
+            --build-arg VERSION="$VERSION" \
+            --build-arg PORT="$PORT" \
+            --build-arg TIMESTAMP="${TIMESTAMP}" \
+            --build-arg GIT_REVISION="${GIT_REVISION}" \
+            --build-arg GIT_SUMMARY="${GIT_SUMMARY}" \
+            --build-arg GIT_DESC="${GIT_DESC}" \
+            --build-arg BUILDER_COMMENT="${BUILDER_COMMENT}" \
+            --build-arg GOPROXY="https://goproxy.io,direct" \
+            -t ghcr.io/$ACTOR/$IMAGE_NAME:$IMAGE_TAG \
+            -t ghcr.io/$ACTOR/$IMAGE_NAME:latest \
+            -t $ACTOR/$IMAGE_NAME:$IMAGE_TAG \
+            -t $ACTOR/$IMAGE_NAME:latest \
+            .
+          if [ "$GH_TOKEN" != "" ]; then
+            docker login ghcr.io -u $ACTOR -p $GH_TOKEN
+            # docker tag IMAGE_ID ghcr.io/$ACTOR/$IMAGE_NAME:$VERSION
+            docker push ghcr.io/$ACTOR/$IMAGE_NAME:$IMAGE_TAG
+            docker push ghcr.io/$ACTOR/$IMAGE_NAME:latest
+          fi
+          if [ "$HUB_TOKEN" != "" ]; then
+            docker login -u $ACTOR -p $HUB_TOKEN
+            docker push $ACTOR/$IMAGE_NAME:$IMAGE_TAG
+            docker push $ACTOR/$IMAGE_NAME:latest
+          fi
 
-#      - name: Upload artifacts
-#        uses: actions/upload-artifact@master
-#        if: startsWith(github.ref, 'refs/tags/v')
-#        with:
-#          name: binaries
-#          path: bin/
-#          if-no-files-found: warn
+      - name: Build
+        if: startsWith(github.ref, 'refs/tags/v') && env.ENABLE_Simple_Release == 0
+        shell: bash
+        run: |
+          APP_NAME="${GITHUB_REPOSITORY##*/}"
+          APP_NAME=$(echo $APP_NAME | sed 's/^(go-)//' | sed 's/(-go)$//' | tr '[:upper:]' '[:lower:]')
+          if [ $APP_NAME = "cmdrstarter" ]; then APP_NAME=your-starter; fi
+          ACTOR=$(echo $GITHUB_ACTOR | tr '[:upper:]' '[:lower:]')
+          #
+          export GOSUMDB=off
+          export GIT_REVISION="$(git rev-parse --short HEAD)"
+          export GOVERSION="$(go version)"
+          # export BUILDTIME="$(date -u '+%Y-%m-%d_%H-%M-%S')"
+          export BUILDTIME="$(date -Iseconds)"
+          # export VERSION="$(grep -E "Version[ \t]+=[ \t]+" doc.go|grep -Eo "[0-9.]+")"
+          export W_PKG="github.com/hedzr/cmdr/conf"
+          export LDFLAGS="-s -w \
+            -X '$W_PKG.Githash=$GIT_REVISION' \
+            -X '$W_PKG.GoVersion=$GOVERSION' \
+            -X '$W_PKG.Buildstamp=$BUILDTIME' \
+            -X '$W_PKG.ServerID=pre-built' \
+            -X '$W_PKG.Version=$VERSION' "
+          cat <<EOF
+                Version: $VERSION
+           GIT_REVISION: $GIT_REVISION
+              GOVERSION: $GOVERSION
+              BUILDTIME: $BUILDTIME
+          EOF
+          #
+          function gobuild() {
+            local d="$1" APP_NAME="${2:-$APP_NAME}"
+            for GOOS in $OSes; do
+              for GOARCH in $ARCHes; do
+                suf=; suf2=tgz; if [[ $GOOS == "windows" ]]; then suf=".exe"; suf2=7z; if [ "$GOARCH" == "arm64" ]; then GOARCH=arm; fi; fi
+                GOOS=$GOOS GOARCH=$GOARCH CGO_ENABLED=0 go build -v -trimpath -ldflags "$LDFLAGS" -o ./bin/$APP_NAME$suf $d
+                chmod +x ./bin/$APP_NAME$suf
+                if [[ $GOOS == "windows" ]]; then
+                  7z a ./bin/$APP_NAME-$GOOS-$GOARCH$suf.$suf2 ./bin/$APP_NAME$suf
+                  if [ -d ci/etc ]; then
+                  cd ci && 7z a ./bin/$APP_NAME-$GOOS-$GOARCH$suf.$suf2 etc/* && cd ..
+                  fi
+                else
+                  if [ -d ci/etc ]; then
+                  tar -czf ./bin/$APP_NAME-$GOOS-$GOARCH$suf.$suf2 ./bin/$APP_NAME$suf -Cci etc
+                  else
+                  tar -czf ./bin/$APP_NAME-$GOOS-$GOARCH$suf.$suf2 ./bin/$APP_NAME$suf
+                  fi
+                fi
+                sha256sum ./bin/$APP_NAME-$GOOS-$GOARCH$suf.$suf2 >> $BINARIES_ASC
+                rm -f ./bin/$APP_NAME$suf
+                NOTHING_OK=0
+              done
+            done
+          }
+          #
+          # go install -v github.com/swaggo/swag/cmd/swag
+          # go generate ./...
+          # for app in app1 app2 app3 ...; do
+          #
+          # for app in $(ls -b ./cli) ; do
+          # for dir in cli; do
+          fromdir="$FROM_FOLDER"
+          [ -d $fromdir/cli ] && fromdir="$fromdir/cli"
+          NOTHING_OK=1
+          for app in $(ls -b $fromdir); do
+            for dir in .; do
+              if [ -d "$fromdir/$dir/$app" ]; then
+                gobuild "$fromdir/$dir/$app" "${APP_NAME}"
+              else
+                echo "folder $fromdir/$dir/$app skipped."
+              fi
+            done # dir
+          done   # app
+          if (($NOTHING_OK)); then
+            if [ -d "$fromdir/simple" ]; then
+              gobuild "$fromdir/simple" "${APP_NAME}"
+            fi
+          fi
+          ls -la bin/*
 
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@2.9.0
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: bump homebrew-brew
+        if: startsWith(github.ref, 'refs/tags/v') && env.ENABLE_Simple_Release == 0 && env.ENABLE_Homebrew != 0
+        env:
+          HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          mkdir .pr && cd .pr
+          APP_NAME="${GITHUB_REPOSITORY##*/}"
+          APP_NAME=$(echo $APP_NAME | sed 's/^(go-)//' | sed 's/(-go)$//' | tr '[:upper:]' '[:lower:]')
+          ACTOR=$(echo $GITHUB_ACTOR | tr '[:upper:]' '[:lower:]')
+          if [ -f .pr/no-disabled ]; then
+            git clone https://hedzr:$GITHUB_TOKEN@github.com/hedzr/homebrew-brew.git
+            cd homebrew-brew
+            git config --unset-all http.https://github.com/.extraheader
+            git config user.name 'hedzr'
+            git config user.email 'hedzrz@gmail.com'
+            #
+            sed -i -r "s/v\d+\.\d+\.\d+/$RELEASE_VERSION/ig" Formular/$APP_NAME.rb
+            sed -i -r "s///ig" Formular/$APP_NAME.rb
+            #
+            git add .
+            git commit -m "bump to $APP_NAME $RELEASE_VERSION"
+            git push --set-upstream https://hedzr:$GITHUB_TOKEN@github.com/hedzr/homebrew-brew.git master
+          fi
+          # go get -v github.com/hedzr/go-bumper
+          wget https://github.com/hedzr/go-bumper/releases/download/${BUMPER_VER}/bumper-linux-amd64.tgz
+          tar -xf bumper-linux-amd64.tgz
+          cd ..
+          echo .pr/bin/bumper brew -act $ACTOR -am $ACTOR_EMAIL -f $APP_NAME \
+            -ref $GITHUB_REF -ver $RELEASE_VERSION -t $HOMEBREW_TAP \
+            --sha $BINARIES_ASC \
+            --push
+          .pr/bin/bumper brew -act $ACTOR -am $ACTOR_EMAIL -f $APP_NAME \
+            -ref $GITHUB_REF -ver $RELEASE_VERSION -t $HOMEBREW_TAP \
+            --sha $BINARIES_ASC \
+            --token ${GH_TOKEN} \
+            --push
+
+      - name: bump launchpad
+        if: startsWith(github.ref, 'refs/tags/v') && env.ENABLE_Simple_Release == 0
+        run: |
+          echo NOT YET
+
+      # This uploads artifacts from your workflow allowing you to share data between jobs and store data once a workflow is complete.
+      # https://github.com/actions/upload-artifact
+      # https://github.com/actions/download-artifact
+      #
+      - name: Upload artifacts
+        uses: actions/upload-artifact@master
+        if: startsWith(github.ref, 'refs/tags/v') && env.ENABLE_Simple_Release == 0
         with:
+          name: binaries
+          path: bin/
+
+      # This step reads a file from repo and use it for body of the release
+      # This works on any self-hosted runner OS
+      - name: Read RELNOTES.md and use it as a body of new release
+        id: read_release_notes
+        if: startsWith(github.ref, 'refs/tags/v') && env.ENABLE_Simple_Release == 0 && 0 # disable now
+        shell: bash
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          APP_NAME="${GITHUB_REPOSITORY##*/}"
+          APP_NAME=$(echo $APP_NAME | sed 's/^(go-)//' | sed 's/(-go)$//' | tr '[:upper:]' '[:lower:]')
+          if [ $APP_NAME = "cmdrstarter" ]; then APP_NAME=your-starter; fi
+          ACTOR=$(echo $GITHUB_ACTOR | tr '[:upper:]' '[:lower:]')
+          GOT=0
+          for f in RELNOTES relnotes RELNOTES.md REL-NOTES.md relnotes.md rel-notes.md; do
+            if [[ $GOT -eq 0 ]]; then
+              if [ -f $f ]; then
+                r=$(cat $f)
+                r="${r//'%'/'%25'}"
+                r="${r//$'\n'/'%0A'}"
+                r="${r//$'\r'/'%0D'}"
+                r="${r//'{''{'APP_NAME'}''}'/$APP_NAME}"
+                r="${r//'{''{'VERSION'}''}'/$VERSION}"
+                r="${r//'{''{'ACTOR'}''}'/$ACTOR}"
+                r="${r//'{''{'REPO_NAME'}''}'/$REPO_NAME}"
+                r="${r//'{''{'GITHUB_SHA'}''}'/$GITHUB_SHA}"
+                r="${r//'{''{'GITHUB_REF'}''}'/$GITHUB_REF}"
+                r="${r//'{''{'GITHUB_REF_NAME'}''}'/$GITHUB_REF_NAME}"
+                r="${r//'{''{'GITHUB_REPOSITORY'}''}'/$GITHUB_REPOSITORY}"
+                r="${r//'{''{'GITHUB_REPOSITORY_OWNER'}''}'/$GITHUB_REPOSITORY_OWNER}"
+                echo "RELEASE_BODY=$r" >> $GITHUB_OUTPUT
+                GOT=1
+              fi
+            fi
+          done
+
+      # This action allows you to select which files to upload to the just-tagged release. It runs on all operating systems types offered by GitHub.
+      # https://github.com/svenstaro/upload-release-action
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        if: startsWith(github.ref, 'refs/tags/v') && env.ENABLE_Simple_Release == 0
+        with:
+          generate_release_notes: true
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./bin/*
+          file: bin/*
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true
-          #prerelease: false
-          #body:
+          # body: |
+          #   ${{ steps.read_release_notes_0.outputs.RELEASE_BODY }}
+          # body_path: ${{ github.workspace }}-CHANGELOG.txt
+          # body_path: RELNOTES.md
+          # files: |
+          #   LICENSE
+          #   RELNOTES.md
 
 
 
