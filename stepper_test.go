@@ -7,7 +7,8 @@ import (
 
 func TestFloatFormat(t *testing.T) {
 	fltfmt := func(f float64) string {
-		return strconv.FormatFloat(f, 'f', 1, 64) + "%"
+		return strconv.FormatFloat(f, 'f', 1, 64) + "%" // don't worry about there is no multiply by 100 at first, here is just a demo
+		// see the more safe implement of fltfmtpercent() at stepper_fmt.go.
 	}
 	for i, cs := range []struct { //nolint:govet //can be reordered
 		given  float64
