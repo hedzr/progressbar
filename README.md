@@ -14,6 +14,8 @@ Its original sample is pip installing ui, or python [rich](https://github.com/Te
 
 ## History
 
+Since v1.2, we upgrade and rewrite a new implementation of GPB so that we can provide grouped progressbar with titles. It stay in unstabled state but it worked for me. Sometimes you can rollback to v1.1.x to keep the old progrmatic logics unchanged.
+
 - See the [CHANGELOG](https://github.com/hedzr/progressbar/blob/master/CHANGELOG)
 
 ## Guide
@@ -28,6 +30,8 @@ be a bar (called `Stepper`) or a spinner.
 A demo of `multibar` looks like:
 
 ![anim](https://github.com/hzimg/blog-pics/blob/master/Picsee/Screen%20Recording%202023-01-20%20at%2018.52.29.webp?raw=true)
+
+`multibar2` is a complex sample app to show you more advanced usages.
 
 ### What's Steppers
 
@@ -347,6 +351,8 @@ tasks.Add(
 ```
 
 > The API to change a spinner's display layout is same to above.
+
+### Grouped MPBar [Since ]
 
 ## Using `cursor` lib
 

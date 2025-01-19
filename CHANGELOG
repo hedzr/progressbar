@@ -1,12 +1,19 @@
 # CHANGELOG
 
+- v1.2.0
+  - security patches
+  - added new style Grouped MPBar (with group title now)
+  - added `WithBarStepperPostInit(cb)`
+  - added `SetBaseColor(clr int)` & `SetHighlightColor(clr int)` to `BarT`
+  - fix bugs (possible data races)
+
 - v1.1.12
   - security patches
   - fixed [#8](https://github.com/hedzr/progressbar/pull/8)
 
 - v1.1.11
   - security patches
-  - fixed [#6](https://github.com/hedzr/progressbar/pull/6) \ Merge pull request #6 from KilledKenny/fix_showCursor, thanks [@KilledKenny](https://github.com/KilledKenny) 
+  - fixed [#6](https://github.com/hedzr/progressbar/pull/6) \ Merge pull request #6 from KilledKenny/fix_showCursor, thanks [@KilledKenny](https://github.com/KilledKenny)
   - improved examples (a little)
   - improved NewDownloadTasks to support more user-defined callbacks
   - reviewed pbar.go and add more locks, for a console app these locks shall be harmlessness / bugs free
