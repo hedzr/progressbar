@@ -1,5 +1,8 @@
 # CHANGELOG
 
+- v1.2.1
+  - security patches
+
 - v1.2.0
   - security patches
   - added new style Grouped MPBar (with group title now)
