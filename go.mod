@@ -13,8 +13,8 @@ go 1.18
 //replace github.com/hedzr/tuilive => ../tuilive
 
 require (
-	golang.org/x/crypto v0.32.0
-	golang.org/x/net v0.34.0
+	golang.org/x/crypto v0.35.0
+	golang.org/x/net v0.36.0
 )
 
 require (
