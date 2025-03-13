@@ -2,6 +2,7 @@
 
 - v1.2.1
   - security patches
+  - upgrade toolchain to go1.23.7
 
 - v1.2.0
   - security patches
