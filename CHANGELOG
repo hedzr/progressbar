@@ -1,8 +1,15 @@
 # CHANGELOG
 
-- v1.2.1
+- v1.2.5
   - security patches
   - upgrade toolchain to go1.23.7
+
+- v1.2.3 (failed)
+  - security patches
+  - upgrade toolchain to go1.23.7
+
+- v1.2.1
+  - security patches
 
 - v1.2.0
   - security patches

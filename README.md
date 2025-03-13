@@ -14,7 +14,7 @@ Its original sample is pip installing ui, or python [rich](https://github.com/Te
 
 ## History
 
-Since v1.2.1, the minimal toolchain upgraded to go1.23.7.
+Since v1.2.5, the minimal toolchain upgraded to go1.23.7.
 
 Since v1.2, we upgrade and rewrite a new implementation of GPB so that we can provide grouped progressbar with titles. It stay in unstabled state but it worked for me. Sometimes you can rollback to v1.1.x to keep the old progrmatic logics unchanged.
 
