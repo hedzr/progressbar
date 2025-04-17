@@ -1,5 +1,10 @@
 # CHANGELOG
 
+- v1.2.6
+  - security patches
+  - way 1 for #11, `Progress()` and `Bounds()`
+  - way 2 for #11, `Percent() string` ready
+
 - v1.2.5
   - security patches
   - upgrade toolchain to go1.23.7
