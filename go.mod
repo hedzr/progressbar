@@ -2,8 +2,6 @@ module github.com/hedzr/progressbar
 
 go 1.23.0
 
-toolchain go1.23.7
-
 //replace gopkg.in/hedzr/errors.v3 => ../../go-cmdr/05.errors
 //
 //replace github.com/hedzr/log => ../../go-cmdr/10.log
@@ -15,11 +13,11 @@ toolchain go1.23.7
 //replace github.com/hedzr/tuilive => ../tuilive
 
 require (
-	golang.org/x/crypto v0.36.0
-	golang.org/x/net v0.38.0
+	golang.org/x/crypto v0.37.0
+	golang.org/x/net v0.39.0
 )
 
 require (
-	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/term v0.30.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/term v0.31.0 // indirect
 )
