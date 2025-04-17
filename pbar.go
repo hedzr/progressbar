@@ -34,11 +34,15 @@ type PB interface {
 	Close()
 	String() string
 
-	UpdateRange(min, max int64)
-	LowerBound() int64
-	UpperBound() int64
+	UpdateRange(min, max int64) // modify the bounds
+	Step(delta int64)           // update the progress
 
-	Step(delta int64)
+	LowerBound() int64 // unsafe getter for lowerBound
+	UpperBound() int64 // unsafe getter for upperBound
+	Progress() int64   // unsafe progress getter
+
+	// Bounds return lowerBound, upperBound and progress atomically.
+	Bounds() (lb, ub, progress int64)
 }
 
 type (
@@ -68,7 +72,7 @@ type pbar struct {
 	max  int64
 	row  int
 
-	muPainting sync.Mutex
+	muPainting sync.RWMutex
 
 	completed bool
 }
@@ -85,6 +89,14 @@ func (pb *pbar) Close() {
 
 func (pb *pbar) LowerBound() int64 { return pb.min }
 func (pb *pbar) UpperBound() int64 { return pb.max }
+func (pb *pbar) Progress() int64   { return pb.read }
+
+func (pb *pbar) Bounds() (lb, ub, progress int64) {
+	pb.muPainting.RLock()
+	lb, ub, progress = pb.min, pb.max, pb.read
+	pb.muPainting.RUnlock()
+	return
+}
 
 func (pb *pbar) UpdateRange(min, max int64) {
 	pb.muPainting.Lock()
