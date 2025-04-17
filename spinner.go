@@ -247,3 +247,7 @@ func (s *spinner) Bytes(pb *pbar) []byte {
 	// 	read, suffix, total, suffix1, speed, suffix2, dur))
 	// return str
 }
+
+func (s *spinner) Percent() string {
+	return "" // unmeaning
+}

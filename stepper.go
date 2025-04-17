@@ -19,6 +19,8 @@ type BarT interface {
 	String(pb *pbar) string
 	Bytes(pb *pbar) []byte
 
+	Percent() string // just for stepper
+
 	SetSchema(schema string)
 	SetWidth(w int)
 	SetIndentChars(s string)
@@ -56,6 +58,7 @@ type stepper struct {
 	clrHighlight     int
 	barWidth         int
 	safetyTailSpaces int
+	percent          float64
 }
 
 func (s *stepper) SetBaseColor(clr int) {
@@ -147,7 +150,7 @@ func (s *stepper) buildBar(pb *pbar, pos, barWidth int, half bool) string {
 // }
 
 func (s *stepper) Bytes(pb *pbar) []byte {
-	percent := float64(pb.read) / float64(pb.max-pb.min)
+	s.percent = float64(pb.read) / float64(pb.max-pb.min)
 
 	if !pb.completed {
 		pb.stopTime = time.Now()
@@ -158,7 +161,7 @@ func (s *stepper) Bytes(pb *pbar) []byte {
 	total, suffix1 := humanizeBytes(float64(pb.max))
 	speed, suffix2 := humanizeBytes(float64(pb.read) / dur.Seconds())
 
-	pos1 := int(percent * float64(s.barWidth) * 2)
+	pos1 := int(s.percent * float64(s.barWidth) * 2)
 	half := pos1%2 == 0
 	pos := pos1 / 2
 
@@ -167,13 +170,13 @@ func (s *stepper) Bytes(pb *pbar) []byte {
 		Indent:       s.indentL,
 		Prepend:      s.prepend,
 		Bar:          s.buildBar(pb, pos, s.barWidth, half),
-		Percent:      fltfmtpercent(percent), // fmt.Sprintf("%.1f%%", percent),
-		PercentFloat: percent,                // percent = 61 => 61.0%
-		Title:        pb.title,               //
-		Current:      read + suffix,          // fmt.Sprintf("%v%v", read, suffix),
-		Total:        total + suffix1,        // fmt.Sprintf("%v%v", total, suffix1),
-		Speed:        speed + suffix2 + "/s", // fmt.Sprintf("%v%v/s", speed, suffix2),
-		Elapsed:      durfmt(dur),            // fmt.Sprintf("%v", dur), //nolint:gocritic
+		Percent:      fltfmtpercent(s.percent), // fmt.Sprintf("%.1f%%", percent),
+		PercentFloat: s.percent,                // percent = 61 => 61.0%
+		Title:        pb.title,                 //
+		Current:      read + suffix,            // fmt.Sprintf("%v%v", read, suffix),
+		Total:        total + suffix1,          // fmt.Sprintf("%v%v", total, suffix1),
+		Speed:        speed + suffix2 + "/s",   // fmt.Sprintf("%v%v/s", speed, suffix2),
+		Elapsed:      durfmt(dur),              // fmt.Sprintf("%v", dur), //nolint:gocritic
 		ElapsedTime:  dur,
 		Append:       s.append,
 	}
@@ -202,6 +205,10 @@ func (s *stepper) Bytes(pb *pbar) []byte {
 
 func (s *stepper) String(pb *pbar) string {
 	return string(s.Bytes(pb))
+}
+
+func (s *stepper) Percent() string {
+	return fltfmtpercent(s.percent)
 }
 
 const (

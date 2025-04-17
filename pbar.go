@@ -34,6 +34,8 @@ type PB interface {
 	Close()
 	String() string
 
+	Percent() string // just for stepper
+
 	UpdateRange(min, max int64) // modify the bounds
 	Step(delta int64)           // update the progress
 
@@ -185,7 +187,11 @@ func (pb *pbar) String() string {
 	return pb.stepper.String(pb)
 }
 
-func (pb *pbar) locker() func() {
-	pb.muPainting.Lock()
-	return pb.muPainting.Unlock
+func (pb *pbar) Percent() string {
+	return pb.stepper.Percent()
 }
+
+// func (pb *pbar) locker() func() {
+// 	pb.muPainting.Lock()
+// 	return pb.muPainting.Unlock
+// }
