@@ -211,6 +211,10 @@ func (s *DownloadTask) Close() {
 // 	// }
 // }
 
+func (s *DownloadTask) Complete() {
+	s.terminateTrigger()
+}
+
 func (s *DownloadTask) onCompleted(bar PB) {
 	s.terminateTrigger()
 }
