@@ -4,6 +4,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -18,8 +20,6 @@ import (
 	"github.com/hedzr/progressbar"
 	"github.com/hedzr/progressbar/cursor"
 )
-
-var whichStepper = 1
 
 type TitledUrl string
 
@@ -200,10 +200,21 @@ func doEachGroupWithTasks(mpb progressbar.MultiPB, group []string) {
 		job.index = mpb.Add(
 			job.totalTicks,
 			url1.Title(),
+			progressbar.WithBarResumeable(*resumePtr),
+			progressbar.WithBarInitialValue(0), // no sense, just a placeholder, comment it safely
 			progressbar.WithBarOnStart(job.onStart),
 			progressbar.WithBarWorker(job.doWorker),
 			progressbar.WithBarOnCompleted(job.onCompleted),
 			progressbar.WithBarStepper(whichStepper),
+			progressbar.WithBarStepperPostInit(func(bar progressbar.BarT) {
+				// bar.SetHighlightColor(tool.FgDarkGray)
+
+				// no sense but it could be a sapmle for demostrating how
+				// to modify a bar at post-initial time.
+				if *resumePtr {
+					bar.SetInitialValue(0)
+				}
+			}),
 		)
 
 		wg.Add(1)
@@ -281,9 +292,26 @@ func downloadGroups3Worked() {
 	}
 }
 
+var (
+	percentPtr *int
+	resumePtr  *bool
+
+	whichStepper = 1
+	algor        int
+)
+
+func init() {
+	percentPtr = flag.Int("stopat", 0, "the percent which task should puase it at")
+	resumePtr = flag.Bool("resume", false, "continue the uncompleted task")
+	flag.IntVar(&whichStepper, "which", whichStepper, fmt.Sprintf("choose a stepper (0..%d)", progressbar.MaxSteppers()))
+	flag.IntVar(&algor, "algor", algor, "select a algor (0..2)")
+}
+
 func main() {
 	cursor.Hide()
 	defer cursor.Show()
+
+	flag.Parse()
 
 	if s := os.Getenv("WHICH"); s != "" {
 		var err error
@@ -291,16 +319,16 @@ func main() {
 			log.Fatalf("Wrong environment variable WHICH found. It MUST BE a valid number. Cause: %v", err)
 		}
 	}
-	if len(os.Args) > 1 {
+	args := flag.Args()
+	if len(args) > 1 {
 		var err error
-		if whichStepper, err = strconv.Atoi(os.Args[1]); err != nil {
-			log.Fatalf("Wrong argument ('%v') found. It MUST BE a valid number. Cause: %v", os.Args[1], err)
+		if whichStepper, err = strconv.Atoi(args[1]); err != nil {
+			log.Fatalf("Wrong argument ('%v') found. It MUST BE a valid number. Cause: %v", args[1], err)
 		} else if whichStepper > progressbar.MaxSteppers() {
-			log.Fatalf("Wrong argument ('%v') found. The Maxinium value is %v. Cause: %v", os.Args[1], progressbar.MaxSteppers(), err)
+			log.Fatalf("Wrong argument ('%v') found. The Maxinium value is %v. Cause: %v", args[1], progressbar.MaxSteppers(), err)
 		}
 	}
 
-	var algor int
 	if s := os.Getenv("ALGOR"); s != "" {
 		var err error
 		if algor, err = strconv.Atoi(s); err != nil {

@@ -6,6 +6,27 @@ For enabling the new feature `Groupable`, `multibar2` app demonstrates how to co
 
 This new feature added a title to the front of each group, and allowes groups (jobs) running asynchronously or synchronously.
 
+### Try
+
+Running this app with these flags:
+
+```bash
+$ go run ./examples/multibar2 --help
+Usage of /var/folders/zv/5r7hq8bs6qs3cx2z743t_3_h0000gn/T/go-build2485759846/b001/exe/multibar2:
+  -algor int
+        select a algor (0..2)
+  -resume
+        continue the uncompleted task
+  -stop-at int
+        the percent which task should puase it at
+  -which int
+        choose a stepper (0..4)
+
+$ # For example:
+$ go run ./examples/multibar2 -resume -which 2
+$ WHICH=2 ALGOR=1 go run ./examples/multibar2 -resume
+```
+
 ## How To
 
 The new feature (`Groupable with title`) needs a type assertion generally:
@@ -17,7 +38,7 @@ defer mpb.Close() // cleanup
 
 `GroupedPB` enables `AddToGroup(groupTitle, totalTicks, taskTitle, opts...)` to allow adding group title and task.
 
-`doEachGroupWithTasks` is a common function to show how to do it: 
+`doEachGroupWithTasks` is a common function to show how to do it:
 
 ```go
 func doEachGroupWithTasks(mpb progressbar.GroupedPB, wg *sync.WaitGroup, group groupedJobs) {
