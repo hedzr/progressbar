@@ -263,6 +263,10 @@ func (s *DownloadTask) onStart(bar PB) {
 func (s *DownloadTask) doWorker(bar PB, exitCh <-chan struct{}) (stop bool) {
 	// _, _ = io.Copy(s.w, s.resp.Body)
 
+	if s.Req == nil || s.File == nil {
+		return
+	}
+
 	if s.Resp == nil {
 		log.Printf("Warn: %v", "invalid http request or response (nil).")
 		return
