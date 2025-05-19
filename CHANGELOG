@@ -1,5 +1,14 @@
 # CHANGELOG
 
+- v1.2.7
+  - security patches
+  - BREAK: change `Worker` prototype to `func(bar PB, exitCh <-chan struct{}) (stop bool)`
+  - add PercentF/I(), SetResumeable(b), SetInitialValue(i), ...
+  - add opts: `WithBarInitialValue`, `WithBarResumeable` for #12
+  - make safety for taskdownload.doWorker
+  - add `Complete()`
+  - update multibar app for demostrating resumeable downloader, for #12
+
 - v1.2.6
   - security patches
   - way 1 for #11, `Progress()` and `Bounds()`
