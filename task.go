@@ -154,7 +154,7 @@ func (s *sTask) Close() {
 // 	Step(delta int64)
 // }
 
-func (s *sTask) onStep(bar PB, exitCh <-chan struct{}) {
+func (s *sTask) onStep(bar PB, exitCh <-chan struct{}) (stop bool) {
 	if s.onStepProc != nil {
 		s.onStepProc(bar, exitCh)
 	}

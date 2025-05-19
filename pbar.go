@@ -48,7 +48,7 @@ type PB interface {
 }
 
 type (
-	Worker         func(bar PB, exitCh <-chan struct{})
+	Worker         func(bar PB, exitCh <-chan struct{}) (stop bool)
 	OnCompleted    func(bar PB)
 	OnStart        func(bar PB)
 	OnDataPrepared func(bar PB, data *SchemaData)
@@ -153,7 +153,9 @@ func (pb *pbar) run() {
 
 	if pb.worker != nil {
 		go func() {
-			pb.worker(pb, pb.mpbar.SignalExit())
+			if pb.worker(pb, pb.mpbar.SignalExit()) {
+				// pb.mpbar.Cancel()
+			}
 		}()
 	}
 }

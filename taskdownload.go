@@ -260,7 +260,7 @@ func (s *DownloadTask) onStart(bar PB) {
 	}
 }
 
-func (s *DownloadTask) doWorker(bar PB, exitCh <-chan struct{}) {
+func (s *DownloadTask) doWorker(bar PB, exitCh <-chan struct{}) (stop bool) {
 	// _, _ = io.Copy(s.w, s.resp.Body)
 
 	if s.Resp == nil {
@@ -291,4 +291,5 @@ func (s *DownloadTask) doWorker(bar PB, exitCh <-chan struct{}) {
 
 		// time.Sleep(time.Millisecond * 100)
 	}
+	return
 }

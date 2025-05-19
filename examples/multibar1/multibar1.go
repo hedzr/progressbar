@@ -153,7 +153,7 @@ func (j *Job) Update(delta int) int64 {
 func (j *Job) onStart(bar progressbar.PB) {
 	j.writer = bar
 }
-func (j *Job) doWorker(bar progressbar.PB, exitCh <-chan struct{}) {
+func (j *Job) doWorker(bar progressbar.PB, exitCh <-chan struct{}) (stop bool) {
 	// step by step, do yours
 
 	defer j.mpb.Redraw() // and redraw the bar
@@ -162,14 +162,22 @@ func (j *Job) doWorker(bar progressbar.PB, exitCh <-chan struct{}) {
 	defer ticker.Stop()
 	defer j.wg.Done()
 
+stopped:
 	for {
 		select {
+		case <-exitCh:
+			break stopped
 		case <-ticker.C: // or update pbar every 50ms
 			if j.Update(100) >= j.totalTicks {
-				return
+				break stopped
+			}
+			if got := j.mpb.PercentI(0); *percentPtr > 0 && got > *percentPtr {
+				stop = true
+				break stopped
 			}
 		}
 	}
+	return
 }
 func (j *Job) onCompleted(bar progressbar.PB) {
 	// trigger terminated
