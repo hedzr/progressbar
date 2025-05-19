@@ -6,6 +6,7 @@ package progressbar
 import (
 	"os"
 	"sync/atomic"
+	"time"
 
 	"github.com/hedzr/progressbar/cursor"
 )
@@ -76,6 +77,9 @@ func (bars *barsGroup) Add(mpb *mpbar2, maxBytes int64, title string, opts ...Op
 
 func (mpb *mpbar2) Close() {
 	if atomic.CompareAndSwapInt32(&mpb.closed, 0, 1) {
+		// waiting for Redraw() completed.
+		time.Sleep(200 * time.Millisecond)
+
 		close(mpb.sigExit)
 
 		if mpb.gb != nil {
@@ -118,8 +122,8 @@ func (mpb *mpbar2) Close() {
 }
 
 func (mpb *mpbar2) Redraw() {
+	var sig chan struct{}
 	if atomic.LoadInt32(&mpb.closed) == 0 {
-		var sig chan struct{}
 		mpb.rw.RLock()
 		sig = mpb.sigRedraw
 		mpb.rw.RUnlock()

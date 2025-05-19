@@ -79,8 +79,8 @@ func (mpb *mpbar) Close() {
 }
 
 func (mpb *mpbar) Redraw() {
+	var sig chan struct{}
 	if atomic.LoadInt32(&mpb.closed) == 0 {
-		var sig chan struct{}
 		mpb.rw.RLock()
 		sig = mpb.sigRedraw
 		mpb.rw.RUnlock()
