@@ -46,80 +46,90 @@ func getFileSize(filepath string) (int64, error) {
 	return fileSize, nil
 }
 
-func doEachGroup2(group []string) {
+func onStartCB() progressbar.OnStartCB {
 	resumeable := *resumePtr
-	// fmt.Printf("resumeable enabled: %v\n", resumeable)
+	return func(task *progressbar.DownloadTask, bar progressbar.PB) (err error) {
+		if task.Req == nil {
+			var existingFileSize int64
+			existingFileSize, _ = getFileSize(task.Filename)
+			// if existingFileSize > 0 && resumeable {
+			// 	fmt.Printf("size of %q: %d - resumeable enabled.\n", task.Filename, existingFileSize)
+			// }
+			logger.Debug("resumeable state", "resumeable", bar.Resumeable(), "resume-point", existingFileSize)
 
-	tasks := progressbar.NewDownloadTasks(progressbar.New(),
-		progressbar.WithDownloadTaskOnStart(func(task *progressbar.DownloadTask, bar progressbar.PB) (err error) {
-			if task.Req == nil {
-				var existingFileSize int64
-				existingFileSize, _ = getFileSize(task.Filename)
-				// if existingFileSize > 0 && resumeable {
-				// 	fmt.Printf("size of %q: %d - resumeable enabled.\n", task.Filename, existingFileSize)
-				// }
-				task.Req, err = http.NewRequest("GET", task.Url, nil) //nolint:gocritic
+			task.Req, err = http.NewRequest("GET", task.Url, nil) //nolint:gocritic
+			if err != nil {
+				log.Printf("Error: %v", err)
+				return
+			}
+			if resumeable && existingFileSize > 0 {
+				task.Req.Header.Set("Range", fmt.Sprintf("bytes=%v-", existingFileSize))
+				task.File, err = os.OpenFile(task.Filename, os.O_APPEND|os.O_WRONLY, 0o644)
 				if err != nil {
 					log.Printf("Error: %v", err)
 					return
 				}
-				if resumeable && existingFileSize > 0 {
-					task.Req.Header.Set("Range", fmt.Sprintf("bytes=%v-", existingFileSize))
-					task.File, err = os.OpenFile(task.Filename, os.O_APPEND|os.O_WRONLY, 0o644)
-					if err != nil {
-						log.Printf("Error: %v", err)
-						return
-					}
-					whence := io.SeekEnd
-					_, err = task.File.Seek(0, whence)
-					// fmt.Printf("size of %q: %d - resumeable enabled - seeked to end of file.\n", task.Filename, existingFileSize)
-				} else {
-					task.File, err = os.OpenFile(task.Filename, os.O_CREATE|os.O_WRONLY, 0o644)
-				}
-				if err != nil {
-					log.Printf("Error: %v", err)
-					return
-				}
-				task.Resp, err = http.DefaultClient.Do(task.Req)
-				// println(task.Resp.StatusCode)
-				if task.Resp.StatusCode == http.StatusRequestedRangeNotSatisfiable {
-					const BUFFERSIZE = 4096
-					task.Buffer = make([]byte, BUFFERSIZE)
-
-					bar.UpdateRange(0, existingFileSize)
-					bar.SetInitialValue(existingFileSize)
-					task.File.Close()
-					task.File = nil
-					task.Req = nil
-					task.Writer = bar
-					task.Complete()
-
-					// fmt.Printf("size of %q: %d/%d - resumeable enabled - seeked to end of file.\n", task.Filename, existingFileSize, task.Resp.ContentLength)
-
-					return nil
-				}
-				if err != nil {
-					log.Printf("Error: %v", err)
-					return
-				}
-
+				whence := io.SeekEnd
+				_, err = task.File.Seek(0, whence)
+				// fmt.Printf("size of %q: %d - resumeable enabled - seeked to end of file.\n", task.Filename, existingFileSize)
+			} else {
+				task.File, err = os.OpenFile(task.Filename, os.O_CREATE|os.O_WRONLY, 0o644)
+			}
+			if err != nil {
+				log.Printf("Error: %v", err)
+				return
+			}
+			task.Resp, err = http.DefaultClient.Do(task.Req)
+			// println(task.Resp.StatusCode)
+			if task.Resp.StatusCode == http.StatusRequestedRangeNotSatisfiable {
 				const BUFFERSIZE = 4096
 				task.Buffer = make([]byte, BUFFERSIZE)
 
-				if task.Resp.StatusCode == http.StatusPartialContent {
-					if resumeable && existingFileSize > 0 {
-						bar.SetInitialValue(existingFileSize)
-					}
-					bar.UpdateRange(0, task.Resp.ContentLength+existingFileSize)
-					slog.Debug(fmt.Sprintf("size of %q: %d/%d - resumeable enabled - seeked to end of file. PARTIAL\n", task.Filename, existingFileSize, task.Resp.ContentLength))
-				} else {
-					bar.UpdateRange(0, task.Resp.ContentLength)
-				}
+				bar.UpdateRange(0, existingFileSize)
+				bar.SetInitialValue(existingFileSize)
+				task.File.Close()
+				task.File = nil
+				task.Req = nil
+				task.Writer = bar
+				task.Complete()
 
-				task.Writer = io.MultiWriter(task.File, bar)
+				// fmt.Printf("size of %q: %d/%d - resumeable enabled - seeked to end of file.\n", task.Filename, existingFileSize, task.Resp.ContentLength)
+
+				return nil
 			}
-			return
-		}),
+			if err != nil {
+				log.Printf("Error: %v", err)
+				return
+			}
+
+			const BUFFERSIZE = 4096
+			task.Buffer = make([]byte, BUFFERSIZE)
+
+			if task.Resp.StatusCode == http.StatusPartialContent {
+				if resumeable && existingFileSize > 0 {
+					bar.SetInitialValue(existingFileSize)
+				}
+				bar.UpdateRange(0, task.Resp.ContentLength+existingFileSize)
+				slog.Debug(fmt.Sprintf("size of %q: %d/%d - resumeable enabled - seeked to end of file. PARTIAL\n", task.Filename, existingFileSize, task.Resp.ContentLength))
+			} else {
+				bar.UpdateRange(0, task.Resp.ContentLength)
+			}
+
+			task.Writer = io.MultiWriter(task.File, bar)
+		}
+		return
+	}
+}
+
+func doEachGroup2(group []string) {
+	cb := onStartCB()
+	if *defaultOnStartCBPtr {
+		cb = nil
+		logger.Debug("disable the client-side onStartCB callback func")
+	}
+	tasks := progressbar.NewDownloadTasks(progressbar.New(),
+		progressbar.WithDownloadTaskOnStart(cb),
+		progressbar.WithDownloadTaskLogger(logger),
 	)
 	defer tasks.Close()
 
@@ -128,6 +138,8 @@ func doEachGroup2(group []string) {
 		// fmt.Printf("adding %v (title: %v)\n", url1.String(), url1.Title())
 		tasks.Add(url1.String(), url1,
 			progressbar.WithBarStepper(whichStepper),
+			progressbar.WithBarResumeable(*resumePtr),
+			// progressbar.WithBarLogger(logger),
 		)
 	}
 
@@ -169,8 +181,12 @@ var (
 	whichPtr   *int
 	algorPtr   *int
 
+	defaultOnStartCBPtr *bool
+
 	whichStepper = 1
 	algor        int
+
+	logger *slog.Logger
 )
 
 func init() {
@@ -178,6 +194,7 @@ func init() {
 	resumePtr = flag.Bool("resume", false, "continue the uncompleted task")
 	whichPtr = flag.Int("which", whichStepper, fmt.Sprintf("choose a stepper (0..%d)", progressbar.MaxSteppers()))
 	algorPtr = flag.Int("algor", algor, "select a algor (0..2)")
+	defaultOnStartCBPtr = flag.Bool("default", false, "use internal resumeable side instead of your code at client-side")
 }
 
 func main() {
@@ -185,6 +202,19 @@ func main() {
 	defer cursor.Show()
 
 	flag.Parse()
+
+	if *defaultOnStartCBPtr {
+		lvl := new(slog.LevelVar)
+		lvl.Set(slog.LevelInfo)
+		if *resumePtr {
+			lvl.Set(slog.LevelDebug)
+		}
+		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+			Level: lvl,
+		}))
+	} else {
+		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{}))
+	}
 
 	if s := os.Getenv("WHICH"); s != "" {
 		var err error

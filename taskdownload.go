@@ -241,38 +241,94 @@ func (s *DownloadTask) terminateTrigger() {
 	}
 }
 
+func getFileSize(filepath string) (int64, error) {
+	var fileSize int64
+	fi, err := os.Stat(filepath)
+	if err != nil {
+		return fileSize, err
+	}
+	if fi.IsDir() {
+		return fileSize, nil
+	}
+	fileSize = fi.Size()
+	return fileSize, nil
+}
+
 func (s *DownloadTask) onStart(bar PB) {
 	if s.Req == nil {
 		var err error
 
 		if s.onStartCB != nil {
 			if err = s.onStartCB(s, bar); err != nil {
-				log.Printf("Error: %v", err)
-				return
+				s.logger.Error("user customized onStartCB returns failure state", "err", err)
 			}
 			return
 		}
 
+		var existingFileSize int64
+		existingFileSize, _ = getFileSize(s.Filename)
+
+		resumeable := bar.Resumeable() && existingFileSize > 0
+		s.logger.Debug("resumeable state", "resumeable", bar.Resumeable(), "resume-point", existingFileSize)
+
 		s.Req, err = http.NewRequest("GET", s.Url, nil) //nolint:gocritic
 		if err != nil {
-			log.Printf("Error: %v", err)
+			s.logger.Error("creating a new http request failed", "err", err)
 			return
 		}
-		s.File, err = os.OpenFile(s.Filename, os.O_CREATE|os.O_WRONLY, 0o644)
+		if resumeable {
+			s.Req.Header.Set("Range", fmt.Sprintf("bytes=%v-", existingFileSize))
+			s.File, err = os.OpenFile(s.Filename, os.O_APPEND|os.O_WRONLY, 0o644)
+			if err != nil {
+				s.logger.Error("sending header for resumeable trunks failed", "err", err, "resume-point", existingFileSize)
+				return
+			}
+			whence := io.SeekEnd
+			_, err = s.File.Seek(0, whence)
+			// fmt.Printf("size of %q: %d - resumeable enabled - seeked to end of file.\n", task.Filename, existingFileSize)
+		} else {
+			s.File, err = os.OpenFile(s.Filename, os.O_CREATE|os.O_WRONLY, 0o644)
+		}
 		if err != nil {
-			log.Printf("Error: %v", err)
+			s.logger.Error("opening/seeking on local file failed", "err", err)
 			return
 		}
 		s.Resp, err = http.DefaultClient.Do(s.Req)
+		// println(s.Resp.StatusCode)
+		if s.Resp.StatusCode == http.StatusRequestedRangeNotSatisfiable {
+			const BUFFERSIZE = 4096
+			s.Buffer = make([]byte, BUFFERSIZE)
+
+			bar.UpdateRange(0, existingFileSize)
+			bar.SetInitialValue(existingFileSize)
+			s.Writer = bar
+
+			// setup bar for resumeable downloader
+			s.File.Close()
+			s.File = nil // make redraw() safety
+			s.Req = nil  // make redraw() safety
+			s.Complete() // this task has been completed because all pieces were downloaded
+
+			s.logger.Debug(fmt.Sprintf("size of %q: %d/%d - resumeable enabled - seeked to end of file.\n", s.Filename, existingFileSize, s.Resp.ContentLength))
+			return
+		}
 		if err != nil {
-			log.Printf("Error: %v", err)
+			s.logger.Error("getting http response object failed", "err", err)
 			return
 		}
 
 		const BUFFERSIZE = 4096
 		s.Buffer = make([]byte, BUFFERSIZE)
 
-		bar.UpdateRange(0, s.Resp.ContentLength)
+		if s.Resp.StatusCode == http.StatusPartialContent {
+			if resumeable && existingFileSize > 0 {
+				bar.SetInitialValue(existingFileSize)
+			}
+			bar.UpdateRange(0, s.Resp.ContentLength+existingFileSize)
+			s.logger.Debug(fmt.Sprintf("size of %q: %d/%d - resumeable enabled - seeked to end of file. PARTIAL\n", s.Filename, existingFileSize, s.Resp.ContentLength))
+		} else {
+			bar.UpdateRange(0, s.Resp.ContentLength)
+		}
 
 		s.Writer = io.MultiWriter(s.File, bar)
 	}
@@ -286,14 +342,14 @@ func (s *DownloadTask) doWorker(bar PB, exitCh <-chan struct{}) (stop bool) {
 	}
 
 	if s.Resp == nil {
-		log.Printf("Warn: %v", "invalid http request or response (nil).")
+		s.logger.Warn("invalid http request or response (nil).")
 		return
 	}
 
 	for {
 		n, err := s.Resp.Body.Read(s.Buffer)
 		if err != nil && !errors.Is(err, io.EOF) {
-			log.Printf("Error: %v", err)
+			s.logger.Error("reading from http response failed", "err", err)
 			return
 		}
 		if n == 0 {
@@ -301,7 +357,7 @@ func (s *DownloadTask) doWorker(bar PB, exitCh <-chan struct{}) (stop bool) {
 		}
 
 		if _, err = s.Writer.Write(s.Buffer[:n]); err != nil {
-			log.Printf("Error: %v", err)
+			s.logger.Error("writing trunk to local file failed", "err", err)
 			return
 		}
 
