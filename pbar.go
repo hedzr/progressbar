@@ -34,7 +34,14 @@ type PB interface {
 	Close()
 	String() string
 
-	Percent() string // just for stepper
+	Percent() string   // just for stepper
+	PercentF() float64 // return 0.905
+	PercentI() int     // '90.5' -> return 91
+
+	Bar() BarT
+	Resumeable() bool
+	SetResumeable(resumeable bool)
+	SetInitialValue(initial int64)
 
 	UpdateRange(min, max int64) // modify the bounds
 	Step(delta int64)           // update the progress
@@ -79,6 +86,8 @@ type pbar struct {
 	completed bool
 }
 
+var _ PB = ((*pbar)(nil))
+
 func (pb *pbar) Close() {
 	pb.muPainting.Lock()
 	defer pb.muPainting.Unlock()
@@ -88,6 +97,18 @@ func (pb *pbar) Close() {
 	// 	close(pb.sigRedraw)
 	// }
 }
+
+func (pb *pbar) SetInitialValue(v int64) {
+	pb.muPainting.Lock()
+	defer pb.muPainting.Unlock()
+
+	pb.read = v
+	pb.stepper.SetInitialValue(v)
+}
+
+func (pb *pbar) Bar() BarT            { return pb.stepper }
+func (pb *pbar) Resumeable() bool     { return pb.stepper.Resumeable() }
+func (pb *pbar) SetResumeable(b bool) { pb.stepper.SetResumeable(b) }
 
 func (pb *pbar) LowerBound() int64 { return pb.min }
 func (pb *pbar) UpperBound() int64 { return pb.max }
@@ -191,6 +212,14 @@ func (pb *pbar) String() string {
 
 func (pb *pbar) Percent() string {
 	return pb.stepper.Percent()
+}
+
+func (pb *pbar) PercentF() float64 {
+	return pb.stepper.PercentF()
+}
+
+func (pb *pbar) PercentI() int {
+	return pb.stepper.PercentI()
 }
 
 // func (pb *pbar) locker() func() {

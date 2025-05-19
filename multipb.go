@@ -15,12 +15,18 @@ import (
 type MultiPB interface {
 	io.Writer
 	Close()
+	Cancel() // cancel the bar
 
 	Add(maxBytes int64, title string, opts ...Opt) (index int)
 	Remove(index int)
 
 	Redraw()
 	SignalExit() <-chan struct{}
+
+	Bar(index int) BarT
+	Percent(index int) string   // just for stepper
+	PercentF(index int) float64 // return 0.905
+	PercentI(index int) int     // '90.5' -> return 91
 }
 
 func multiBar(opts ...MOpt) *mpbar {
@@ -51,6 +57,10 @@ type mpbar struct {
 	dirtyFlag int32
 	closed    int32
 	lines     int
+}
+
+func (mpb *mpbar) Cancel() {
+	mpb.Close()
 }
 
 func (mpb *mpbar) Close() {
@@ -91,6 +101,42 @@ func (mpb *mpbar) Redraw() {
 }
 
 func (mpb *mpbar) SignalExit() <-chan struct{} { return mpb.sigExit }
+
+func (mpb *mpbar) Bar(index int) BarT {
+	mpb.rw.RLock()
+	defer mpb.rw.RUnlock()
+	if index >= 0 && index < len(mpb.bars) {
+		return mpb.bars[index].Bar()
+	}
+	return nil
+}
+
+func (mpb *mpbar) Percent(index int) string {
+	mpb.rw.RLock()
+	defer mpb.rw.RUnlock()
+	if index >= 0 && index < len(mpb.bars) {
+		return mpb.bars[index].Percent()
+	}
+	return "0"
+}
+
+func (mpb *mpbar) PercentF(index int) float64 {
+	mpb.rw.RLock()
+	defer mpb.rw.RUnlock()
+	if index >= 0 && index < len(mpb.bars) {
+		return mpb.bars[index].PercentF()
+	}
+	return 0
+}
+
+func (mpb *mpbar) PercentI(index int) int {
+	mpb.rw.RLock()
+	defer mpb.rw.RUnlock()
+	if index >= 0 && index < len(mpb.bars) {
+		return mpb.bars[index].PercentI()
+	}
+	return 0
+}
 
 func (mpb *mpbar) Add(maxBytes int64, title string, opts ...Opt) (index int) {
 	pb := defaultBytes(mpb, maxBytes, title, opts...).(*pbar) //nolint:errcheck //the call is always ok

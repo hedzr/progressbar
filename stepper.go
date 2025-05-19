@@ -19,7 +19,13 @@ type BarT interface {
 	String(pb *pbar) string
 	Bytes(pb *pbar) []byte
 
-	Percent() string // just for stepper
+	Percent() string   // just for stepper
+	PercentF() float64 // return 0.905
+	PercentI() int     // '90.5' -> return 91
+
+	Resumeable() bool
+	SetResumeable(resumeable bool)
+	SetInitialValue(initial int64)
 
 	SetSchema(schema string)
 	SetWidth(w int)
@@ -59,6 +65,20 @@ type stepper struct {
 	barWidth         int
 	safetyTailSpaces int
 	percent          float64
+	initial          int64
+	resumeable       bool
+}
+
+func (s *stepper) SetInitialValue(initial int64) {
+	s.initial = initial
+}
+
+func (s *stepper) SetResumeable(resumeable bool) {
+	s.resumeable = resumeable
+}
+
+func (s *stepper) Resumeable() bool {
+	return s.resumeable
 }
 
 func (s *stepper) SetBaseColor(clr int) {
@@ -150,7 +170,10 @@ func (s *stepper) buildBar(pb *pbar, pos, barWidth int, half bool) string {
 // }
 
 func (s *stepper) Bytes(pb *pbar) []byte {
-	s.percent = float64(pb.read) / float64(pb.max-pb.min)
+	s.percent = float64(max(s.initial, pb.read)) / float64(pb.max-pb.min)
+	if s.percent > 1 {
+		s.percent = 1
+	}
 
 	if !pb.completed {
 		pb.stopTime = time.Now()
@@ -209,6 +232,14 @@ func (s *stepper) String(pb *pbar) string {
 
 func (s *stepper) Percent() string {
 	return fltfmtpercent(s.percent)
+}
+
+func (s *stepper) PercentF() float64 {
+	return s.percent
+}
+
+func (s *stepper) PercentI() int {
+	return int(s.percent*100 + 0.5)
 }
 
 const (

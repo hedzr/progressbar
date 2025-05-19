@@ -114,6 +114,10 @@ type spinner struct {
 	clrHighlight     int
 }
 
+func (s *spinner) SetInitialValue(initial int64) {}
+func (s *spinner) SetResumeable(resumeable bool) {}
+func (s *spinner) Resumeable() bool              { return false }
+
 func (s *spinner) SetBaseColor(clr int) {
 	s.clrBase = clr
 }
@@ -250,4 +254,12 @@ func (s *spinner) Bytes(pb *pbar) []byte {
 
 func (s *spinner) Percent() string {
 	return "" // unmeaning
+}
+
+func (s *spinner) PercentF() float64 {
+	return 0
+}
+
+func (s *spinner) PercentI() int {
+	return 0
 }
