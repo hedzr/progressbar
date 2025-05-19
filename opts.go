@@ -41,6 +41,18 @@ func WithBarWidth(w int) Opt {
 	}
 }
 
+func WithBarInitialValue(v int64) Opt {
+	return func(pb *pbar) {
+		pb.stepper.SetInitialValue(v)
+	}
+}
+
+func WithBarResumeable(b bool) Opt {
+	return func(pb *pbar) {
+		pb.stepper.SetResumeable(b)
+	}
+}
+
 // WithBarTextSchema allows cha
 //
 //	"{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | {{.Title}} | {{.Current}}/{{.Total}} {{.Speed}} {{.Elapsed}} {{.Append}}"
