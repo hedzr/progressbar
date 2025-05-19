@@ -4,8 +4,11 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,8 +18,6 @@ import (
 	"github.com/hedzr/progressbar"
 	"github.com/hedzr/progressbar/cursor"
 )
-
-var whichStepper = 1
 
 type TitledUrl string
 
@@ -32,21 +33,71 @@ func (t TitledUrl) Title() string {
 	return path.Base(parse.Path)
 }
 
+func getFileSize(filepath string) (int64, error) {
+	var fileSize int64
+	fi, err := os.Stat(filepath)
+	if err != nil {
+		return fileSize, err
+	}
+	if fi.IsDir() {
+		return fileSize, nil
+	}
+	fileSize = fi.Size()
+	return fileSize, nil
+}
+
 func doEachGroup2(group []string) {
+	resumeable := *resumePtr
+	// fmt.Printf("resumeable enabled: %v\n", resumeable)
+
 	tasks := progressbar.NewDownloadTasks(progressbar.New(),
 		progressbar.WithDownloadTaskOnStart(func(task *progressbar.DownloadTask, bar progressbar.PB) (err error) {
 			if task.Req == nil {
+				var existingFileSize int64
+				existingFileSize, _ = getFileSize(task.Filename)
+				// if existingFileSize > 0 && resumeable {
+				// 	fmt.Printf("size of %q: %d - resumeable enabled.\n", task.Filename, existingFileSize)
+				// }
 				task.Req, err = http.NewRequest("GET", task.Url, nil) //nolint:gocritic
 				if err != nil {
 					log.Printf("Error: %v", err)
 					return
 				}
-				task.File, err = os.OpenFile(task.Filename, os.O_CREATE|os.O_WRONLY, 0o644)
+				if resumeable && existingFileSize > 0 {
+					task.Req.Header.Set("Range", fmt.Sprintf("bytes=%v-", existingFileSize))
+					task.File, err = os.OpenFile(task.Filename, os.O_APPEND|os.O_WRONLY, 0o644)
+					if err != nil {
+						log.Printf("Error: %v", err)
+						return
+					}
+					whence := io.SeekEnd
+					_, err = task.File.Seek(0, whence)
+					// fmt.Printf("size of %q: %d - resumeable enabled - seeked to end of file.\n", task.Filename, existingFileSize)
+				} else {
+					task.File, err = os.OpenFile(task.Filename, os.O_CREATE|os.O_WRONLY, 0o644)
+				}
 				if err != nil {
 					log.Printf("Error: %v", err)
 					return
 				}
 				task.Resp, err = http.DefaultClient.Do(task.Req)
+				// println(task.Resp.StatusCode)
+				if task.Resp.StatusCode == http.StatusRequestedRangeNotSatisfiable {
+					const BUFFERSIZE = 4096
+					task.Buffer = make([]byte, BUFFERSIZE)
+
+					bar.UpdateRange(0, existingFileSize)
+					bar.SetInitialValue(existingFileSize)
+					task.File.Close()
+					task.File = nil
+					task.Req = nil
+					task.Writer = bar
+					task.Complete()
+
+					// fmt.Printf("size of %q: %d/%d - resumeable enabled - seeked to end of file.\n", task.Filename, existingFileSize, task.Resp.ContentLength)
+
+					return nil
+				}
 				if err != nil {
 					log.Printf("Error: %v", err)
 					return
@@ -55,7 +106,15 @@ func doEachGroup2(group []string) {
 				const BUFFERSIZE = 4096
 				task.Buffer = make([]byte, BUFFERSIZE)
 
-				bar.UpdateRange(0, task.Resp.ContentLength)
+				if task.Resp.StatusCode == http.StatusPartialContent {
+					if resumeable && existingFileSize > 0 {
+						bar.SetInitialValue(existingFileSize)
+					}
+					bar.UpdateRange(0, task.Resp.ContentLength+existingFileSize)
+					slog.Debug(fmt.Sprintf("size of %q: %d/%d - resumeable enabled - seeked to end of file. PARTIAL\n", task.Filename, existingFileSize, task.Resp.ContentLength))
+				} else {
+					bar.UpdateRange(0, task.Resp.ContentLength)
+				}
 
 				task.Writer = io.MultiWriter(task.File, bar)
 			}
@@ -104,9 +163,28 @@ func downloadGroups() {
 	}
 }
 
+var (
+	percentPtr *int
+	resumePtr  *bool
+	whichPtr   *int
+	algorPtr   *int
+
+	whichStepper = 1
+	algor        int
+)
+
+func init() {
+	percentPtr = flag.Int("stopat", 0, "the percent which task should puase it at")
+	resumePtr = flag.Bool("resume", false, "continue the uncompleted task")
+	whichPtr = flag.Int("which", whichStepper, fmt.Sprintf("choose a stepper (0..%d)", progressbar.MaxSteppers()))
+	algorPtr = flag.Int("algor", algor, "select a algor (0..2)")
+}
+
 func main() {
 	cursor.Hide()
 	defer cursor.Show()
+
+	flag.Parse()
 
 	if s := os.Getenv("WHICH"); s != "" {
 		var err error
@@ -114,12 +192,13 @@ func main() {
 			log.Fatalf("Wrong environment variable WHICH found. It MUST BE a valid number. Cause: %v", err)
 		}
 	}
-	if len(os.Args) > 1 {
+	args := flag.Args()
+	if len(args) > 1 {
 		var err error
-		if whichStepper, err = strconv.Atoi(os.Args[1]); err != nil {
-			log.Fatalf("Wrong argument ('%v') found. It MUST BE a valid number. Cause: %v", os.Args[1], err)
+		if whichStepper, err = strconv.Atoi(args[1]); err != nil {
+			log.Fatalf("Wrong argument ('%v') found. It MUST BE a valid number. Cause: %v", args[1], err)
 		} else if whichStepper > progressbar.MaxSteppers() {
-			log.Fatalf("Wrong argument ('%v') found. The Maxinium value is %v. Cause: %v", os.Args[1], progressbar.MaxSteppers(), err)
+			log.Fatalf("Wrong argument ('%v') found. The Maxinium value is %v. Cause: %v", args[1], progressbar.MaxSteppers(), err)
 		}
 	}
 
