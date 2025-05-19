@@ -3,7 +3,9 @@
 
 package progressbar
 
-import "io"
+import (
+	"io"
+)
 
 type Opt func(pb *pbar)
 
@@ -115,6 +117,12 @@ func WithBarOnDataPrepared(cb OnDataPrepared) Opt {
 		pb.onDataPrepared = cb
 	}
 }
+
+// func WithBarLogger(logger *slog.Logger) Opt {
+// 	return func(pb *pbar) {
+// 		pb.logger = logger
+// 	}
+// }
 
 type (
 	OnDone func(mpb MultiPB)

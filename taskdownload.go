@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"sync"
@@ -72,11 +72,18 @@ func WithDownloadTaskOnStart(fn OnStartCB) DownloadTasksOpt {
 	}
 }
 
+func WithDownloadTaskLogger(logger *slog.Logger) DownloadTasksOpt {
+	return func(tsk *DownloadTasks) {
+		tsk.logger = logger
+	}
+}
+
 type DownloadTasks struct {
 	bar       MultiPB
 	tasks     []*DownloadTask
 	wg        sync.WaitGroup
 	onStartCB OnStartCB
+	logger    *slog.Logger
 }
 
 func (s *DownloadTasks) Close() {
@@ -119,7 +126,12 @@ func (s *DownloadTasks) Close() {
 //		tasks.Wait() // start waiting for all tasks completed gracefully
 //	}
 func (s *DownloadTasks) Add(url string, filename any, opts ...Opt) {
+	if s.logger == nil {
+		s.logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{}))
+	}
+
 	task := new(DownloadTask)
+	task.logger = s.logger
 	task.wg = &s.wg
 	task.Url = url
 	if s, ok := filename.(string); ok {
@@ -177,6 +189,8 @@ type DownloadTask struct {
 	wg        *sync.WaitGroup
 	doneCount int32
 	onStartCB OnStartCB
+
+	logger *slog.Logger
 }
 
 type OnStartCB func(task *DownloadTask, bar PB) (err error)
@@ -185,13 +199,13 @@ func (s *DownloadTask) Close() {
 	if s.Resp != nil {
 		err := s.Resp.Body.Close()
 		if err != nil {
-			log.Printf("Error: %v", err)
+			s.logger.Error("Close http response failure", "err", err)
 		}
 	}
 	if s.File != nil {
 		err := s.File.Close()
 		if err != nil {
-			log.Printf("Error: %v", err)
+			s.logger.Error("Close file failure", "err", err)
 		}
 	}
 	if s.wg != nil {

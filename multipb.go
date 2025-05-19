@@ -57,6 +57,8 @@ type mpbar struct {
 	dirtyFlag int32
 	closed    int32
 	lines     int
+
+	// logger *slog.Logger
 }
 
 func (mpb *mpbar) Cancel() {

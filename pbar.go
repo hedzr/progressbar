@@ -84,6 +84,8 @@ type pbar struct {
 	muPainting sync.RWMutex
 
 	completed bool
+
+	// logger *slog.Logger
 }
 
 var _ PB = ((*pbar)(nil))
