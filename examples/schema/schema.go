@@ -49,12 +49,13 @@ func forAllSteppers() {
 				}),
 			),
 			progressbar.WithTaskAddBarTitle("Task "+strconv.Itoa(i)), // fmt.Sprintf("Task %v", i)),
-			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) {
+			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) (stop bool) {
 				for ub, ix := bar.UpperBound(), int64(0); ix < ub; ix++ {
 					ms := time.Duration(10 + rand.Intn(300)) //nolint:gosec //just a demo
 					time.Sleep(time.Millisecond * ms)
 					bar.Step(1)
 				}
+				return
 			}),
 		)
 	}

@@ -55,7 +55,7 @@ func main() {
 		progressbar.WithBarOnCompleted(func(bar progressbar.PB) {
 			wg.Done()
 		}),
-		progressbar.WithBarWorker(func(bar progressbar.PB, exitCh <-chan struct{}) {
+		progressbar.WithBarWorker(func(bar progressbar.PB, exitCh <-chan struct{}) (stop bool) {
 			for {
 				n, err := resp.Body.Read(buf)
 				if err != nil && !errors.Is(err, io.EOF) {
@@ -77,6 +77,7 @@ func main() {
 			}
 
 			// _, _ = io.Copy(io.MultiWriter(f, bar), resp.Body)
+			return
 		}),
 	)
 
