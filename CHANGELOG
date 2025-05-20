@@ -1,5 +1,8 @@
 # CHANGELOG
 
+- v1.2.8
+  - copy the client-side codes to onStart(), for enableding resumeable feature, for #12
+
 - v1.2.7
   - security patches
   - BREAK: change `Worker` prototype to `func(bar PB, exitCh <-chan struct{}) (stop bool)`
