@@ -3,6 +3,7 @@ package progressbar
 import (
 	"math"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -11,7 +12,11 @@ func fltfmt(f float64) string {
 }
 
 func fltfmtpercent(f float64) string {
-	return strconv.FormatFloat(f*100, 'f', 1, 64) + "%"
+	str := strconv.FormatFloat(f*100, 'f', 1, 64) + "%"
+	if l := len(str); l < 6 {
+		return strings.Repeat(" ", 6-l) + str
+	}
+	return str
 }
 
 func intfmt(i int64) string {
