@@ -105,7 +105,7 @@ func WithStepperHighlightColor(clr color.Color) StepperOpt {
 
 var steppers = map[int]*stepper{
 	// 0: python installer style
-	0: {unread: "━", read: "━", leftHalf: "╺", rightHalf: "╸", clrBase: color.FgDarkGray, clrHighlight: color.FgYellow, clrHighlight16M: color.NewColor16m(173, 147, 77, false)},
+	0: {unread: "━", read: "━", leftHalf: "╺", rightHalf: "╸", clrBase: color.FgDarkGray, clrHighlight: color.NewColor16m(173, 147, 77, false), clrHighlight16M: color.FgYellow},
 
 	// "▏", "▎", "▍", "▌", "▋", "▊", "▉"
 
