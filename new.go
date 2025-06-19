@@ -1,13 +1,24 @@
 package progressbar
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 func Add(maxBytes int64, title string, opts ...Opt) MultiPB {
-	defaultMPB.Add(maxBytes, title, opts...)
-	return defaultMPB
+	var pb = DefaultMPB()
+	pb.Add(maxBytes, title, opts...)
+	return pb
 }
 
-var defaultMPB = multiBar2()
+var onceDefaultMPB sync.Once
+var defaultMPBInstance *mpbar2
+var DefaultMPB = func() *mpbar2 {
+	onceDefaultMPB.Do(func() {
+		defaultMPBInstance = multiBar2()
+	})
+	return defaultMPBInstance
+}
 
 // New creates a managed MultiPB progressbar object so you
 // can setup the properties of the bar.
