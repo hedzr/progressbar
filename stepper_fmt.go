@@ -32,7 +32,9 @@ func humanizeBytes(s float64) (value, suffix string) {
 	}
 
 	e := math.Floor(logn(s, base))
-	suffix = sizes[int(e)]
+	if int(e) < len(sizes) {
+		suffix = sizes[int(e)]
+	}
 	val := math.Floor(s/math.Pow(base, e)*10+0.5) / 10
 
 	// f := "%.0f"
