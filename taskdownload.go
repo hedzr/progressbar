@@ -12,6 +12,7 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // NewDownloadTasks is a wrapped NewTasks to simplify the http
@@ -193,7 +194,7 @@ type DownloadTask struct {
 	logger *slog.Logger
 }
 
-type OnStartCB func(task *DownloadTask, bar PB) (err error)
+type OnStartCB func(task *DownloadTask, bar MiniResizeableBar) (err error)
 
 func (s *DownloadTask) Close() {
 	if s.Resp != nil {
@@ -229,7 +230,7 @@ func (s *DownloadTask) Complete() {
 	s.terminateTrigger()
 }
 
-func (s *DownloadTask) onCompleted(bar PB) {
+func (s *DownloadTask) onCompleted(bar MiniResizeableBar) {
 	s.terminateTrigger()
 }
 
@@ -254,7 +255,24 @@ func getFileSize(filepath string) (int64, error) {
 	return fileSize, nil
 }
 
-func (s *DownloadTask) onStart(bar PB) {
+type MiniResizeableBar interface {
+	io.Writer
+
+	SetInitialValue(initial int64)
+	UpdateRange(min int64, max int64)
+	Step(delte int64)
+	SchemaDataPrepared(data *SchemaData)
+
+	Completed() bool
+
+	Resumeable() bool
+	UpperBound() int64
+	State() (min, max, pos int64)
+	Dur() (dur time.Duration)
+	Title() string
+}
+
+func (s *DownloadTask) onStart(bar MiniResizeableBar) {
 	if s.Req == nil {
 		var err error
 
@@ -334,7 +352,7 @@ func (s *DownloadTask) onStart(bar PB) {
 	}
 }
 
-func (s *DownloadTask) doWorker(bar PB, exitCh <-chan struct{}) (stop bool) {
+func (s *DownloadTask) doWorker(bar MiniResizeableBar, exitCh <-chan struct{}) (stop bool) {
 	// _, _ = io.Copy(s.w, s.resp.Body)
 
 	if s.Req == nil || s.File == nil {
@@ -365,6 +383,7 @@ func (s *DownloadTask) doWorker(bar PB, exitCh <-chan struct{}) (stop bool) {
 		case <-exitCh:
 			return
 		default: // avoid block at <-exitCh
+			time.Sleep(1 * time.Millisecond)
 		}
 
 		// time.Sleep(time.Millisecond * 100)

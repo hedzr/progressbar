@@ -10,14 +10,17 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/hedzr/progressbar/tool"
+	"github.com/hedzr/is/term/color"
 )
 
 func MaxSteppers() int { return len(steppers) }
 
 type BarT interface {
-	String(pb *pbar) string
-	Bytes(pb *pbar) []byte
+	StringV1(pb *pbar) string
+	BytesV1(pb *pbar) []byte
+
+	String(bar MiniResizeableBar) string
+	Bytes(bar MiniResizeableBar) []byte
 
 	Percent() string   // just for stepper
 	PercentF() float64 // return 0.905
@@ -34,23 +37,85 @@ type BarT interface {
 	SetAppendText(s string)
 	SetExtraTailSpaces(howMany int)
 
-	SetBaseColor(clr int)
-	SetHighlightColor(clr int)
+	SetBaseColor(clr color.Color)
+	SetHighlightColor(clr color.Color)
+}
+
+type StepperOpt func(s BarT)
+
+func WithStepperResumeable(resumeable bool) StepperOpt {
+	return func(s BarT) {
+		s.SetResumeable(resumeable)
+	}
+}
+
+func WithStepperInitialValue(initial int64) StepperOpt {
+	return func(s BarT) {
+		s.SetInitialValue(initial)
+	}
+}
+
+func WithStepperSchema(schema string) StepperOpt {
+	return func(s BarT) {
+		s.SetSchema(schema)
+	}
+}
+
+func WithStepperWidth(width int) StepperOpt {
+	return func(s BarT) {
+		s.SetWidth(width)
+	}
+}
+
+func WithStepperIndentChars(text string) StepperOpt {
+	return func(s BarT) {
+		s.SetIndentChars(text)
+	}
+}
+
+func WithStepperPrependText(text string) StepperOpt {
+	return func(s BarT) {
+		s.SetPrependText(text)
+	}
+}
+
+func WithStepperAppendText(text string) StepperOpt {
+	return func(s BarT) {
+		s.SetAppendText(text)
+	}
+}
+
+func WithStepperTailSpace(count int) StepperOpt {
+	return func(s BarT) {
+		s.SetExtraTailSpaces(count)
+	}
+}
+
+func WithStepperBaseColor(clr color.Color) StepperOpt {
+	return func(s BarT) {
+		s.SetBaseColor(clr)
+	}
+}
+
+func WithStepperHighlightColor(clr color.Color) StepperOpt {
+	return func(s BarT) {
+		s.SetHighlightColor(clr)
+	}
 }
 
 var steppers = map[int]*stepper{
 	// 0: python installer style
-	0: {unread: "━", read: "━", leftHalf: "╺", rightHalf: "╸", clrBase: tool.FgDarkGray, clrHighlight: tool.FgYellow},
+	0: {unread: "━", read: "━", leftHalf: "╺", rightHalf: "╸", clrBase: color.FgDarkGray, clrHighlight: color.FgYellow, clrHighlight16M: color.NewColor16m(173, 147, 77, false)},
 
 	// "▏", "▎", "▍", "▌", "▋", "▊", "▉"
 
-	1: {unread: "▒", read: "▉", leftHalf: "▒", rightHalf: "▌", clrBase: tool.FgDarkGray, clrHighlight: tool.FgLightCyan},
-	2: {unread: "-", read: "+", leftHalf: "+", rightHalf: "+", clrBase: tool.FgDarkGray, clrHighlight: tool.FgYellow},
-	3: {unread: "&nbsp;", read: "=", leftHalf: ">", rightHalf: ">", clrBase: tool.FgDarkGray, clrHighlight: tool.FgYellow},
+	1: {unread: "▒", read: "▉", leftHalf: "▒", rightHalf: "▌", clrBase: color.FgDarkGray, clrHighlight: color.FgLightCyan},
+	2: {unread: "-", read: "+", leftHalf: "+", rightHalf: "+", clrBase: color.FgDarkGray, clrHighlight: color.FgYellow},
+	3: {unread: "&nbsp;", read: "=", leftHalf: ">", rightHalf: ">", clrBase: color.FgDarkGray, clrHighlight: color.FgYellow},
 }
 
 type stepper struct {
-	tool.ColorTranslator
+	tr               color.Translator
 	tmpl             *template.Template
 	unread           string
 	read             string
@@ -60,8 +125,9 @@ type stepper struct {
 	prepend          string
 	append           string
 	schema           string
-	clrBase          int
-	clrHighlight     int
+	clrBase          color.Color
+	clrHighlight     color.Color
+	clrHighlight16M  color.Color
 	barWidth         int
 	safetyTailSpaces int
 	percent          float64
@@ -81,11 +147,11 @@ func (s *stepper) Resumeable() bool {
 	return s.resumeable
 }
 
-func (s *stepper) SetBaseColor(clr int) {
+func (s *stepper) SetBaseColor(clr color.Color) {
 	s.clrBase = clr
 }
 
-func (s *stepper) SetHighlightColor(clr int) {
+func (s *stepper) SetHighlightColor(clr color.Color) {
 	s.clrHighlight = clr
 }
 
@@ -114,15 +180,18 @@ func (s *stepper) SetExtraTailSpaces(howMany int) {
 	s.safetyTailSpaces = howMany
 }
 
-func (s *stepper) init() *stepper {
-	if s.ColorTranslator == nil {
-		s.ColorTranslator = tool.NewCPT()
+func (s *stepper) init(opts ...StepperOpt) *stepper {
+	if s.tr == nil {
+		s.tr = color.GetCPT()
 	}
 	if s.tmpl == nil {
 		s.updateSchema()
 	}
 	if s.safetyTailSpaces == 0 {
 		s.safetyTailSpaces = 8
+	}
+	for _, opt := range opts {
+		opt(s)
 	}
 	return s
 }
@@ -138,23 +207,23 @@ func (s *stepper) updateSchema() *stepper {
 	return s
 }
 
-func (s *stepper) buildBar(pb *pbar, pos, barWidth int, half bool) string {
+func (s *stepper) buildBar(pb MiniResizeableBar, pos, barWidth int, half bool) string {
 	var sb bytes.Buffer
 	var rightPart string
 	if pos > 0 {
 		leftPart := strings.Repeat(s.read, pos)
-		sb.WriteString(s.Colorize(s.Translate(leftPart, 0), s.clrHighlight))
+		s.tr.ColoredFast(&sb, s.clrHighlight, s.tr.Translate(leftPart, color.Reset))
 	}
-	if !pb.completed {
+	if !pb.Completed() {
 		if half {
-			sb.WriteString(s.Colorize(s.leftHalf, s.clrBase))
+			s.tr.ColoredFast(&sb, s.clrBase, s.leftHalf)
 		} else {
-			sb.WriteString(s.Colorize(s.rightHalf, s.clrHighlight))
+			s.tr.ColoredFast(&sb, s.clrHighlight, s.rightHalf)
 		}
 	}
 	if barWidth > pos {
 		rightPart = strings.Repeat(s.unread, barWidth-pos-1)
-		sb.WriteString(s.Colorize(s.Translate(rightPart, 0), s.clrHighlight))
+		s.tr.ColoredFast(&sb, s.clrHighlight, s.tr.Translate(rightPart, color.Reset))
 	}
 	return sb.String()
 }
@@ -169,7 +238,64 @@ func (s *stepper) buildBar(pb *pbar, pos, barWidth int, half bool) string {
 // 	return sb.String()
 // }
 
-func (s *stepper) Bytes(pb *pbar) []byte {
+func (s *stepper) String(bar MiniResizeableBar) string {
+	min, max, progress := bar.State()
+	s.percent = float64(progress) / float64(max-min)
+	if s.percent > 1 {
+		s.percent = 1
+	}
+
+	dur := bar.Dur()
+
+	read, suffix := humanizeBytes(float64(progress))
+	total, suffix1 := humanizeBytes(float64(max))
+	speed, suffix2 := humanizeBytes(float64(progress) / dur.Seconds())
+
+	pos1 := int(s.percent * float64(s.barWidth) * 2)
+	half := pos1%2 == 0
+	pos := pos1 / 2
+
+	var sb bytes.Buffer
+	data := &SchemaData{
+		Indent:       s.indentL,
+		Prepend:      s.prepend,
+		Bar:          s.buildBar(bar, pos, s.barWidth, half),
+		Percent:      fltfmtpercent(s.percent), // fmt.Sprintf("%.1f%%", percent),
+		PercentFloat: s.percent,                // percent = 61 => 61.0%
+		Title:        bar.Title(),              //
+		Current:      read + suffix,            // fmt.Sprintf("%v%v", read, suffix),
+		Total:        total + suffix1,          // fmt.Sprintf("%v%v", total, suffix1),
+		Speed:        speed + suffix2 + "/s",   // fmt.Sprintf("%v%v/s", speed, suffix2),
+		Elapsed:      durfmt(dur),              // fmt.Sprintf("%v", dur), //nolint:gocritic
+		ElapsedTime:  dur,
+		Append:       s.append,
+	}
+
+	s.init()
+
+	bar.SchemaDataPrepared(data)
+
+	err := s.tmpl.Execute(&sb, data)
+	if err != nil {
+		log.Printf("Error: %v", err)
+	}
+
+	// str := sb.Bytes()
+	// return str
+
+	if s.safetyTailSpaces > 0 {
+		sb.WriteString(strings.Repeat(" ", s.safetyTailSpaces))
+	}
+
+	str := s.tr.Translate(sb.String(), color.Reset)
+	return str
+}
+
+func (s *stepper) Bytes(bar MiniResizeableBar) []byte {
+	return []byte(s.String(bar))
+}
+
+func (s *stepper) BytesV1(pb *pbar) []byte {
 	s.percent = float64(max(s.initial, pb.read)) / float64(pb.max-pb.min)
 	if s.percent > 1 {
 		s.percent = 1
@@ -222,12 +348,12 @@ func (s *stepper) Bytes(pb *pbar) []byte {
 		sb.WriteString(strings.Repeat(" ", s.safetyTailSpaces))
 	}
 
-	str := s.Translate(sb.String(), 0)
+	str := s.tr.Translate(sb.String(), color.Reset)
 	return []byte(str)
 }
 
-func (s *stepper) String(pb *pbar) string {
-	return string(s.Bytes(pb))
+func (s *stepper) StringV1(pb *pbar) string {
+	return string(s.BytesV1(pb))
 }
 
 func (s *stepper) Percent() string {

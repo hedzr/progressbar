@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hedzr/progressbar/cursor"
+	"github.com/hedzr/is/term/color"
 )
 
 type GroupedPB interface {
@@ -116,7 +116,7 @@ func (mpb *mpbar2) Close() {
 			defer mpb.rw.Unlock()
 
 			close(mpb.sigRedraw)
-			mpb.sigRedraw = nil
+			// mpb.sigRedraw = nil
 		}
 	}
 }
@@ -244,8 +244,8 @@ func (mpb *mpbar2) redrawNow() {
 
 		var first = atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 0, 1)
 		if !first {
-			cursor.Left(1000)
-			cursor.Up(totalRows - mpb.lines)
+			color.Left(1000)
+			color.Up(totalRows - mpb.lines)
 		}
 
 		shouldBeDone, doneAll, rows := 0, 0, 0
@@ -290,8 +290,8 @@ func (mpb *mpbar2) redrawNow() {
 		var cnt = 0
 		var first = atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 0, 1)
 		if !first {
-			cursor.Left(1000)
-			cursor.Up(len(mpb.bars) - mpb.lines)
+			color.Left(1000)
+			color.Up(len(mpb.bars) - mpb.lines)
 		}
 
 		for i, pb := range mpb.bars {

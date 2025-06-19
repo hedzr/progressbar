@@ -9,7 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/hedzr/progressbar/cursor"
+	"github.com/hedzr/is/term/color"
 )
 
 type MultiPB interface {
@@ -197,8 +197,8 @@ func (mpb *mpbar) redrawNow() {
 
 	var first = atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 0, 1)
 	if !first {
-		cursor.Left(1000)
-		cursor.Up(len(mpb.bars) - mpb.lines)
+		color.Left(1000)
+		color.Up(len(mpb.bars) - mpb.lines)
 	}
 
 	for i, pb := range mpb.bars {

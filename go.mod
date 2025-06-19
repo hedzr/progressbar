@@ -1,4 +1,4 @@
-module github.com/hedzr/progressbar
+module github.com/hedzr/progressbar/v2
 
 go 1.23.0
 
@@ -13,11 +13,12 @@ go 1.23.0
 //replace github.com/hedzr/tuilive => ../tuilive
 
 require (
-	golang.org/x/crypto v0.38.0
-	golang.org/x/net v0.40.0
+	github.com/hedzr/is v0.8.26
+	golang.org/x/crypto v0.39.0
 )
 
 require (
+	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/term v0.32.0 // indirect
 )

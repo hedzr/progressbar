@@ -11,7 +11,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/hedzr/progressbar/tool"
+	"github.com/hedzr/is/term/color"
 )
 
 func MaxSpinners() int { return len(spinners) }
@@ -99,7 +99,7 @@ var spinners = map[int]*spinner{
 }
 
 type spinner struct {
-	tool.ColorTranslator
+	tr               color.Translator
 	onDraw           func(pb *pbar)
 	tmpl             *template.Template
 	indentL          string
@@ -110,19 +110,19 @@ type spinner struct {
 	barWidth         int
 	safetyTailSpaces int
 	gauge            int32
-	clrBase          int
-	clrHighlight     int
+	clrBase          color.Color
+	clrHighlight     color.Color
 }
 
 func (s *spinner) SetInitialValue(initial int64) {}
 func (s *spinner) SetResumeable(resumeable bool) {}
 func (s *spinner) Resumeable() bool              { return false }
 
-func (s *spinner) SetBaseColor(clr int) {
+func (s *spinner) SetBaseColor(clr color.Color) {
 	s.clrBase = clr
 }
 
-func (s *spinner) SetHighlightColor(clr int) {
+func (s *spinner) SetHighlightColor(clr color.Color) {
 	s.clrHighlight = clr
 }
 
@@ -151,15 +151,19 @@ func (s *spinner) SetExtraTailSpaces(howMany int) {
 	s.safetyTailSpaces = howMany
 }
 
-func (s *spinner) init() *spinner {
-	if s.ColorTranslator == nil {
-		s.ColorTranslator = tool.NewCPT()
+func (s *spinner) init(opts ...StepperOpt) *spinner {
+	if s.tr == nil {
+		s.tr = color.GetCPT()
 	}
 	if s.tmpl == nil {
 		s.updateSchema()
 	}
 	if s.safetyTailSpaces == 0 {
 		s.safetyTailSpaces = 8
+	}
+
+	for _, opt := range opts {
+		opt(s)
 	}
 	return s
 }
@@ -175,19 +179,20 @@ func (s *spinner) updateSchema() *spinner {
 	return s
 }
 
-func (s *spinner) buildBar(pb *pbar, pos, barWidth int, half bool) string {
+func (s *spinner) buildBar(bar MiniResizeableBar, pos, barWidth int, half bool) string {
 	str := s.chars[pos]
 	if len(str) < s.barWidth {
 		str += strings.Repeat(" ", s.barWidth-len(str))
 	}
+	_ = bar
 	return str
 }
 
-func (s *spinner) String(pb *pbar) string {
-	return string(s.Bytes(pb))
+func (s *spinner) StringV1(pb *pbar) string {
+	return string(s.BytesV1(pb))
 }
 
-func (s *spinner) Bytes(pb *pbar) []byte {
+func (s *spinner) BytesV1(pb *pbar) []byte {
 	// defer pb.locker()()
 
 	cnt := int(atomic.AddInt32(&s.gauge, 1)) % len(s.chars)
@@ -238,7 +243,7 @@ func (s *spinner) Bytes(pb *pbar) []byte {
 		sb.WriteString(strings.Repeat(" ", s.safetyTailSpaces))
 	}
 
-	str := s.Translate(sb.String(), 0)
+	str := s.tr.Translate(sb.String(), color.Reset)
 	return []byte(str)
 
 	// if pb.completed {
@@ -250,6 +255,71 @@ func (s *spinner) Bytes(pb *pbar) []byte {
 	// 	indentChars, s.chars[cnt], percent, pb.title,
 	// 	read, suffix, total, suffix1, speed, suffix2, dur))
 	// return str
+}
+
+func (s *spinner) String(bar MiniResizeableBar) string {
+	return string(s.Bytes(bar))
+}
+
+func (s *spinner) Bytes(bar MiniResizeableBar) []byte {
+	// defer pb.locker()()
+
+	min, max, progress := bar.State()
+	percent := float64(progress) / float64(max-min)
+	if percent > 1 {
+		percent = 1
+	}
+
+	dur := bar.Dur()
+
+	cnt := int(atomic.AddInt32(&s.gauge, 1)) % len(s.chars)
+
+	// var percent float64
+	// percent = float64(pb.read) / float64(pb.max-pb.min)
+	// // if percent >= 100 {
+	// // 	pb.completed = true
+	// // }
+	//
+	// if !pb.completed {
+	// 	pb.stopTime = time.Now()
+	// }
+	// dur := pb.stopTime.Sub(pb.startTime)
+
+	read, suffix := humanizeBytes(float64(progress))
+	total, suffix1 := humanizeBytes(float64(max))
+	speed, suffix2 := humanizeBytes(float64(progress) / dur.Seconds())
+
+	data := &SchemaData{
+		Indent:       s.indentL,
+		Prepend:      s.prepend,
+		Bar:          s.buildBar(bar, cnt, s.barWidth, false),
+		Percent:      fltfmtpercent(percent), // fmt.Sprintf("%.1f%%", percent),
+		PercentFloat: percent,                // percent = 61 => 61.0%
+		Title:        bar.Title(),            //
+		Current:      read + suffix,          // fmt.Sprintf("%v%v", read, suffix),
+		Total:        total + suffix1,        // fmt.Sprintf("%v%v", total, suffix1),
+		Speed:        speed + suffix2 + "/s", // fmt.Sprintf("%v%v/s", speed, suffix2),
+		Elapsed:      durfmt(dur),            // fmt.Sprintf("%v", dur), //nolint:gocritic
+		ElapsedTime:  dur,
+		Append:       s.append,
+	}
+
+	s.init()
+
+	bar.SchemaDataPrepared(data)
+
+	var sb bytes.Buffer
+	err := s.tmpl.Execute(&sb, data)
+	if err != nil {
+		log.Printf("Error: %v", err)
+	}
+
+	if s.safetyTailSpaces > 0 {
+		sb.WriteString(strings.Repeat(" ", s.safetyTailSpaces))
+	}
+
+	str := s.tr.Translate(sb.String(), color.Reset)
+	return []byte(str)
 }
 
 func (s *spinner) Percent() string {

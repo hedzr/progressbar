@@ -31,6 +31,7 @@ func defaultBytes(mpbar MultiPB, maxBytes int64, title string, opts ...Opt) PB {
 
 type PB interface {
 	io.Writer
+
 	Close()
 	String() string
 
@@ -55,10 +56,10 @@ type PB interface {
 }
 
 type (
-	Worker         func(bar PB, exitCh <-chan struct{}) (stop bool)
-	OnCompleted    func(bar PB)
-	OnStart        func(bar PB)
-	OnDataPrepared func(bar PB, data *SchemaData)
+	Worker         func(bar MiniResizeableBar, exitCh <-chan struct{}) (stop bool)
+	OnCompleted    func(bar MiniResizeableBar)
+	OnStart        func(bar MiniResizeableBar)
+	OnDataPrepared func(bar MiniResizeableBar, data *SchemaData)
 )
 
 type pbar struct {
@@ -89,6 +90,7 @@ type pbar struct {
 }
 
 var _ PB = ((*pbar)(nil))
+var _ MiniResizeableBar = ((*pbar)(nil))
 
 func (pb *pbar) Close() {
 	pb.muPainting.Lock()
@@ -98,6 +100,12 @@ func (pb *pbar) Close() {
 	// 	close(pb.sigExit)
 	// 	close(pb.sigRedraw)
 	// }
+}
+
+func (pb *pbar) SchemaDataPrepared(data *SchemaData) {
+	if pb.onDataPrepared != nil {
+		pb.onDataPrepared(pb, data)
+	}
 }
 
 func (pb *pbar) SetInitialValue(v int64) {
@@ -121,6 +129,26 @@ func (pb *pbar) Bounds() (lb, ub, progress int64) {
 	lb, ub, progress = pb.min, pb.max, pb.read
 	pb.muPainting.RUnlock()
 	return
+}
+
+func (pb *pbar) State() (min, max, pos int64) {
+	pb.muPainting.RLock()
+	pos = pb.read
+	min = pb.min
+	max = pb.max
+	pb.muPainting.RUnlock()
+	return
+}
+
+func (pb *pbar) Dur() (dur time.Duration) {
+	if !pb.completed {
+		pb.stopTime = time.Now()
+	}
+	dur = pb.stopTime.Sub(pb.startTime)
+	return
+}
+func (pb *pbar) Completed() bool {
+	return pb.completed
 }
 
 func (pb *pbar) UpdateRange(min, max int64) {
@@ -228,3 +256,5 @@ func (pb *pbar) PercentI() int {
 // 	pb.muPainting.Lock()
 // 	return pb.muPainting.Unlock
 // }
+
+func (pb *pbar) Title() string { return pb.title }

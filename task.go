@@ -154,20 +154,20 @@ func (s *sTask) Close() {
 // 	Step(delta int64)
 // }
 
-func (s *sTask) onStep(bar PB, exitCh <-chan struct{}) (stop bool) {
+func (s *sTask) onStep(bar MiniResizeableBar, exitCh <-chan struct{}) (stop bool) {
 	if s.onStepProc != nil {
 		s.onStepProc(bar, exitCh)
 	}
 	return
 }
 
-func (s *sTask) onStart(bar PB) {
+func (s *sTask) onStart(bar MiniResizeableBar) {
 	if s.onStartProc != nil {
 		s.onStartProc(bar)
 	}
 }
 
-func (s *sTask) onCompleted(bar PB) {
+func (s *sTask) onCompleted(bar MiniResizeableBar) {
 	if s.onCompletedProc != nil {
 		s.onCompletedProc(bar)
 	}
