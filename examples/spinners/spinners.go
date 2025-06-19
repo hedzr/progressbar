@@ -9,8 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"golang.org/x/crypto/ssh/terminal"
-
+	"github.com/hedzr/is"
 	"github.com/hedzr/is/term/color"
 	"github.com/hedzr/progressbar/v2"
 )
@@ -25,7 +24,7 @@ func forAllSpinners() {
 	defer tasks.Close()
 
 	max := count
-	_, h, _ := terminal.GetSize(int(os.Stdout.Fd()))
+	_, h, _ := is.GetTtySizeByFile(os.Stdout) // terminal.GetSize(int(os.Stdout.Fd()))
 	if max >= h {
 		max = h
 	}

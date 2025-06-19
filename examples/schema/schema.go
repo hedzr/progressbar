@@ -12,9 +12,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hedzr/is"
 	"github.com/hedzr/is/term/color"
 	"github.com/hedzr/progressbar/v2"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 // const schema = `{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | <b><font color="green">{{.Title}}</font></b> {{.Append}}`
@@ -28,7 +28,7 @@ func forAllSteppers() {
 	defer tasks.Close()
 
 	max := count
-	_, h, _ := terminal.GetSize(int(os.Stdout.Fd()))
+	_, h, _ := is.GetTtySizeByFile(os.Stdout) // terminal.GetSize(int(os.Stdout.Fd()))
 	if max >= h {
 		max = h
 	}
