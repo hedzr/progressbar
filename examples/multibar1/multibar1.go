@@ -17,8 +17,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hedzr/progressbar"
-	"github.com/hedzr/progressbar/cursor"
+	"github.com/hedzr/is/term/color"
+	"github.com/hedzr/progressbar/v2"
 )
 
 type TitledUrl string
@@ -37,7 +37,7 @@ func (t TitledUrl) Title() string {
 
 func doEachGroup2(group []string) {
 	tasks := progressbar.NewDownloadTasks(progressbar.New(),
-		progressbar.WithDownloadTaskOnStart(func(task *progressbar.DownloadTask, bar progressbar.PB) (err error) {
+		progressbar.WithDownloadTaskOnStart(func(task *progressbar.DownloadTask, bar progressbar.MiniResizeableBar) (err error) {
 			if task.Req == nil {
 				task.Req, err = http.NewRequest("GET", task.Url, nil) //nolint:gocritic
 				if err != nil {
@@ -150,10 +150,10 @@ func (j *Job) Update(delta int) int64 {
 // The total bytes was initialized at progressbar.MultiPB.Add(...).
 // You can update the total bytes (upper bound) with
 // progressbar.PB.UpdateRange(...).
-func (j *Job) onStart(bar progressbar.PB) {
+func (j *Job) onStart(bar progressbar.MiniResizeableBar) {
 	j.writer = bar
 }
-func (j *Job) doWorker(bar progressbar.PB, exitCh <-chan struct{}) (stop bool) {
+func (j *Job) doWorker(bar progressbar.MiniResizeableBar, exitCh <-chan struct{}) (stop bool) {
 	// step by step, do yours
 
 	defer j.mpb.Redraw() // and redraw the bar
@@ -179,7 +179,7 @@ stopped:
 	}
 	return
 }
-func (j *Job) onCompleted(bar progressbar.PB) {
+func (j *Job) onCompleted(bar progressbar.MiniResizeableBar) {
 	// trigger terminated
 }
 
@@ -308,8 +308,8 @@ func init() {
 }
 
 func main() {
-	cursor.Hide()
-	defer cursor.Show()
+	color.Hide()
+	defer color.Show()
 
 	flag.Parse()
 

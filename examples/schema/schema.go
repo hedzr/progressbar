@@ -12,10 +12,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hedzr/is/term/color"
+	"github.com/hedzr/progressbar/v2"
 	"golang.org/x/crypto/ssh/terminal"
-
-	"github.com/hedzr/progressbar"
-	"github.com/hedzr/progressbar/cursor"
 )
 
 // const schema = `{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | <b><font color="green">{{.Title}}</font></b> {{.Append}}`
@@ -44,12 +43,12 @@ func forAllSteppers() {
 				progressbar.WithBarExtraTailSpaces(16),
 				progressbar.WithBarPrependText("[[[x]]]"),
 				progressbar.WithBarAppendText("[[[z]]]"),
-				progressbar.WithBarOnDataPrepared(func(bar progressbar.PB, data *progressbar.SchemaData) {
+				progressbar.WithBarOnDataPrepared(func(bar progressbar.MiniResizeableBar, data *progressbar.SchemaData) {
 					data.ElapsedTime *= 2
 				}),
 			),
 			progressbar.WithTaskAddBarTitle("Task "+strconv.Itoa(i)), // fmt.Sprintf("Task %v", i)),
-			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) (stop bool) {
+			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.MiniResizeableBar, exitCh <-chan struct{}) (stop bool) {
 				for ub, ix := bar.UpperBound(), int64(0); ix < ub; ix++ {
 					ms := time.Duration(10 + rand.Intn(300)) //nolint:gosec //just a demo
 					time.Sleep(time.Millisecond * ms)
@@ -64,8 +63,8 @@ func forAllSteppers() {
 }
 
 func main() {
-	cursor.Hide()
-	defer cursor.Show()
+	color.Hide()
+	defer color.Show()
 
 	count = progressbar.MaxSteppers()
 

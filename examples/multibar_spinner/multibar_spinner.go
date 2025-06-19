@@ -7,8 +7,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/hedzr/progressbar"
-	"github.com/hedzr/progressbar/cursor"
+	"github.com/hedzr/is/term/color"
+	"github.com/hedzr/progressbar/v2"
 )
 
 var whichSpinner = 22
@@ -31,8 +31,8 @@ func doEachGroup(group []string) {
 }
 
 func main() {
-	cursor.Hide()
-	defer cursor.Show()
+	color.Hide()
+	defer color.Show()
 
 	if len(os.Args) > 1 {
 		i, err := strconv.ParseInt(os.Args[1], 10, 64)

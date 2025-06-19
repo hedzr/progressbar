@@ -14,8 +14,8 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/hedzr/progressbar"
-	"github.com/hedzr/progressbar/cursor"
+	"github.com/hedzr/is/term/color"
+	"github.com/hedzr/progressbar/v2"
 )
 
 // const schema = `{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | <b><font color="green">{{.Title}}</font></b> {{.Append}}`
@@ -42,7 +42,7 @@ func forAllSteppers() {
 				// progressbar.WithBarTextSchema(schema),
 			),
 			progressbar.WithTaskAddBarTitle(string(strconv.AppendInt([]byte("Task "), int64(i), 10))), // fmt.Sprintf("Task %v", i)),
-			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) (stop bool) {
+			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.MiniResizeableBar, exitCh <-chan struct{}) (stop bool) {
 				for ub, ix := bar.UpperBound(), int64(0); ix < ub; ix++ {
 					ms := time.Duration(10 + rand.Intn(500)) //nolint:gosec //just a demo
 					time.Sleep(time.Millisecond * ms)
@@ -57,8 +57,8 @@ func forAllSteppers() {
 }
 
 func main() {
-	cursor.Hide()
-	defer cursor.Show()
+	color.Hide()
+	defer color.Show()
 
 	count = progressbar.MaxSteppers()
 

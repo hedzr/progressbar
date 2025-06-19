@@ -11,13 +11,13 @@ import (
 	"os"
 	"sync"
 
-	"github.com/hedzr/progressbar"
-	"github.com/hedzr/progressbar/cursor"
+	"github.com/hedzr/is/term/color"
+	"github.com/hedzr/progressbar/v2"
 )
 
 func main() {
-	cursor.Hide()
-	defer cursor.Show()
+	color.Hide()
+	defer color.Show()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -52,10 +52,10 @@ func main() {
 		// progressbar.WithBarSpinner(14),
 		// progressbar.WithBarStepper(3),
 		progressbar.WithBarStepper(0),
-		progressbar.WithBarOnCompleted(func(bar progressbar.PB) {
+		progressbar.WithBarOnCompleted(func(bar progressbar.MiniResizeableBar) {
 			wg.Done()
 		}),
-		progressbar.WithBarWorker(func(bar progressbar.PB, exitCh <-chan struct{}) (stop bool) {
+		progressbar.WithBarWorker(func(bar progressbar.MiniResizeableBar, exitCh <-chan struct{}) (stop bool) {
 			for {
 				n, err := resp.Body.Read(buf)
 				if err != nil && !errors.Is(err, io.EOF) {

@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hedzr/progressbar"
-	"github.com/hedzr/progressbar/cursor"
+	"github.com/hedzr/is/term/color"
+	"github.com/hedzr/progressbar/v2"
 )
 
 const schema = `{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent|printf "%6s"}} | <b><font color="green">{{.Title}}</font></b> {{.Append}}`
@@ -31,7 +31,7 @@ func forAllSpinners() {
 				progressbar.WithBarTextSchema(schema), // change the bar layout here
 			),
 			progressbar.WithTaskAddBarTitle("Task "+strconv.Itoa(i)), // fmt.Sprintf("Task %v", i)),
-			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.PB, exitCh <-chan struct{}) (stop bool) {
+			progressbar.WithTaskAddOnTaskProgressing(func(bar progressbar.MiniResizeableBar, exitCh <-chan struct{}) (stop bool) {
 				for ub, ix := bar.UpperBound(), int64(0); ix < ub; ix++ {
 					ms := time.Duration(20 + rand.Intn(500)) //nolint:gosec //just a demo
 					time.Sleep(time.Millisecond * ms)
@@ -47,8 +47,8 @@ func forAllSpinners() {
 }
 
 func main() {
-	cursor.Hide()
-	defer cursor.Show()
+	color.Hide()
+	defer color.Show()
 
 	if len(os.Args) > 1 {
 		i, err := strconv.ParseInt(os.Args[1], 10, 64)

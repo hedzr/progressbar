@@ -15,8 +15,8 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/hedzr/progressbar"
-	"github.com/hedzr/progressbar/cursor"
+	"github.com/hedzr/is/term/color"
+	"github.com/hedzr/progressbar/v2"
 )
 
 type TitledUrl string
@@ -48,7 +48,7 @@ func getFileSize(filepath string) (int64, error) {
 
 func onStartCB() progressbar.OnStartCB {
 	resumeable := *resumePtr
-	return func(task *progressbar.DownloadTask, bar progressbar.PB) (err error) {
+	return func(task *progressbar.DownloadTask, bar progressbar.MiniResizeableBar) (err error) {
 		if task.Req == nil {
 			var existingFileSize int64
 			existingFileSize, _ = getFileSize(task.Filename)
@@ -198,8 +198,8 @@ func init() {
 }
 
 func main() {
-	cursor.Hide()
-	defer cursor.Show()
+	color.Hide()
+	defer color.Show()
 
 	flag.Parse()
 
