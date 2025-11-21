@@ -1,6 +1,6 @@
 module github.com/hedzr/progressbar/v2
 
-go 1.23.0
+go 1.24.0
 
 //replace gopkg.in/hedzr/errors.v3 => ../../go-cmdr/05.errors
 //
@@ -12,10 +12,10 @@ go 1.23.0
 
 //replace github.com/hedzr/tuilive => ../tuilive
 
-require github.com/hedzr/is v0.8.27
+require github.com/hedzr/is v0.8.65
 
 require (
-	golang.org/x/net v0.41.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/term v0.32.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/term v0.37.0 // indirect
 )
