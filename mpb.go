@@ -13,10 +13,13 @@ import (
 	"github.com/hedzr/is/term/color"
 )
 
-func NewV2() *MPBV2 {
+func NewV2(opts ...OptV2) *MPBV2 {
 	s := &MPBV2{
 		chPaint: make(chan struct{}, 8192),
 		logger:  slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{})),
+	}
+	for _, opt := range opts {
+		opt(s)
 	}
 	return s
 }
@@ -30,7 +33,8 @@ type MPBV2 struct {
 	logger *slog.Logger
 	groups []*GroupV2
 
-	schema string
+	schema      string
+	taskBarOpts []TaskBarOpt
 }
 
 type GroupV2 struct {
@@ -83,7 +87,25 @@ var _ Repaintable = (*MPBV2)(nil)
 var _ MiniResizeableBar = (*TaskBar)(nil)
 
 //
-// ------------------------------ TASK OPTS
+// ------------------------------ MAIN OPTS
+//
+
+type OptV2 func(*MPBV2)
+
+func WithSchema(schema string) OptV2 {
+	return func(m *MPBV2) {
+		m.schema = schema
+	}
+}
+
+func WithTaskOpts(opts ...TaskBarOpt) OptV2 {
+	return func(m *MPBV2) {
+		m.taskBarOpts = opts
+	}
+}
+
+//
+// ------------------------------ TASK BAR OPTS
 //
 
 func WithTaskBarStepper(stepperIndex int, opts ...StepperOpt) TaskBarOpt {
@@ -99,6 +121,51 @@ func WithTaskBarSpinner(spinnersIndex int, opts ...StepperOpt) TaskBarOpt {
 		if s, ok := spinners[spinnersIndex]; ok {
 			tb.stepper = s.init(opts...)
 		}
+	}
+}
+
+func WithTaskBarResumeable(b bool) TaskBarOpt {
+	return func(tb *TaskBar) {
+		tb.stepper.SetResumeable(b)
+	}
+}
+
+// WithTaskBarTextSchema allows cha
+//
+//	"{{.Indent}}{{.Prepend}} {{.Bar}} {{.Percent}} | {{.Title}} | {{.Current}}/{{.Total}} {{.Speed}} {{.Elapsed}} {{.Append}}"
+func WithTaskBarTextSchema(schema string) TaskBarOpt {
+	return func(tb *TaskBar) {
+		tb.stepper.SetSchema(schema)
+	}
+}
+
+func WithTaskBarIndentChars(str string) TaskBarOpt {
+	return func(tb *TaskBar) {
+		tb.stepper.SetIndentChars(str)
+	}
+}
+
+func WithTaskBarPrependText(str string) TaskBarOpt {
+	return func(tb *TaskBar) {
+		tb.stepper.SetPrependText(str)
+	}
+}
+
+func WithTaskBarAppendText(str string) TaskBarOpt {
+	return func(tb *TaskBar) {
+		tb.stepper.SetAppendText(str)
+	}
+}
+
+// WithTaskBarExtraTailSpaces specifies how many spaces will be printed
+// at end of each bar. These spaces can wipe out the dirty tail of
+// line.
+//
+// Default is 8 (spaces). You may specify -1 to disable extra
+// spaces to be printed.
+func WithTaskBarExtraTailSpaces(howMany int) TaskBarOpt {
+	return func(tb *TaskBar) {
+		tb.stepper.SetExtraTailSpaces(howMany)
 	}
 }
 
@@ -124,7 +191,14 @@ func (s *MPBV2) AddDownloadingBar(group, task string, d *DownloadTask, opts ...T
 		s.groups = append(s.groups, grp)
 		err = nil
 	}
-	err = grp.AddDownloader(s, task, d, opts...)
+
+	var to []TaskBarOpt
+	if s.schema != "" {
+		to = append(to, WithTaskBarStepper(0, WithStepperSchema(s.schema)))
+	}
+	to = append(to, s.taskBarOpts...)
+	to = append(to, opts...)
+	err = grp.AddDownloader(s, task, d, to...)
 	return
 }
 
@@ -139,7 +213,14 @@ func (s *MPBV2) AddBar(group, task string, min, max int64, job Job, opts ...Task
 		s.groups = append(s.groups, grp)
 		err = nil
 	}
-	err = grp.AddTask(s, task, min, max, job, opts...)
+
+	var to []TaskBarOpt
+	if s.schema != "" {
+		to = append(to, WithTaskBarStepper(0, WithStepperSchema(s.schema)))
+	}
+	to = append(to, s.taskBarOpts...)
+	to = append(to, opts...)
+	err = grp.AddTask(s, task, min, max, job, to...)
 	return
 }
 
