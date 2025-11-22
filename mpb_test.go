@@ -10,10 +10,13 @@ import (
 	"time"
 )
 
-func TestNewV2(t *testing.T) {
-	defaultMPB.Close()
+// var versions = []string{"1.16.1", "1.17.1", "1.18.1", "1.19.1", "1.20.1", "1.21.1", "1.22.1", "1.23.1", "1.24.1"}
+var versions = []string{"1.24.1"}
 
-	mpb := NewV2()
+const mySchema = `{{.Indent}}{{.Prepend}} <font color="green">{{.Title}}</font> {{.Percent}} {{.Bar}} {{.Current}}/{{.Total}} {{.Speed}} {{.Elapsed}} {{.Append}}`
+
+func TestNewV2(t *testing.T) {
+	mpb := NewV2(WithSchema(mySchema))
 	defer mpb.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -26,9 +29,7 @@ func TestNewV2(t *testing.T) {
 		return
 	}
 
-	versions := []string{"1.16.1", "1.17.1", "1.18.1", "1.23.1"}
 	verIdx := 0
-
 	total, num, numTasks := int64(100), 2, 3
 	for i := range num {
 		for j := 0; j < numTasks; j++ {
