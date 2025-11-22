@@ -139,7 +139,6 @@ func (s *TaskBar) startNow() {
 	now := time.Now()
 	s.startTime = now.Add(-1 * time.Millisecond)
 	s.stopTime = now
-	return
 }
 
 func (pb *TaskBar) Title() string { return pb.Name }
