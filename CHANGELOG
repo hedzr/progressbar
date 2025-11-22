@@ -1,5 +1,17 @@
 # CHANGELOG
 
+- v2.0.0
+  - enabled `examples/mpbv2` app
+  - change python-like stepper's color
+  - align percent string
+  - fix a/some possible crash
+  - fix defaultMPB - delete the default go routine in it by changing defaultMPB to a...
+  - added `NewV2` to initiate a v2 progressbar with more simple api
+  - upgrade deps + security patch
+  - remove unused dep+ref
+  - remove `tool` subpkg
+  - remove `cursor` subpkg
+
 - v1.2.8
   - copy the client-side codes to onStart(), for enableding resumeable feature, for #12
 
