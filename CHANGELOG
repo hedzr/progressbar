@@ -1,5 +1,8 @@
 # CHANGELOG
 
+- v2.0.1
+  - security patch
+
 - v2.0.0
   - enabled `examples/mpbv2` app
   - change python-like stepper's color
