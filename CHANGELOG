@@ -3,6 +3,7 @@
 - v2.1.0
   - move to go1.25.0
   - security patch
+  - fix gh action content to fit for go1.25
 
 - v2.0.1
   - security patch
