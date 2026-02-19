@@ -54,7 +54,7 @@ func doEachGroupWithTasks(mpb progressbar.GroupedPB, wg *sync.WaitGroup, group g
 	var jobs []*Job
 
 	for _, ver := range group.group {
-		url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+		url1 := TitledURL("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
 		job := &Job{Url: url1, mpb: mpb, wg: wg}
 
 		job.totalTicks = int64(3500 + int(rand.Int31n(2000))) // 3500ms

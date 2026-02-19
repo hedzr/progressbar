@@ -82,9 +82,11 @@ type Logger interface {
 
 type TaskBarOpt func(*TaskBar)
 
-var _ Logger = (*MPBV2)(nil)
-var _ Repaintable = (*MPBV2)(nil)
-var _ MiniResizeableBar = (*TaskBar)(nil)
+var (
+	_ Logger            = (*MPBV2)(nil)
+	_ Repaintable       = (*MPBV2)(nil)
+	_ MiniResizeableBar = (*TaskBar)(nil)
+)
 
 //
 // ------------------------------ MAIN OPTS
@@ -181,28 +183,66 @@ func (s *MPBV2) Close() {
 }
 
 func (s *MPBV2) AddDownloadingBar(group, task string, d *DownloadTask, opts ...TaskBarOpt) (err error) {
-	s.muPainting.Lock()
-	defer s.muPainting.Unlock()
+	// s.muPainting.Lock()
+	// defer s.muPainting.Unlock()
+	//
+	// var grp *GroupV2
+	// if grp, err = s.findGroup(group); err != nil {
+	// 	grp = &GroupV2{Name: group, dad: s}
+	// 	grp.block = color.NewRowsBlock()
+	// 	s.groups = append(s.groups, grp)
+	// 	err = nil
+	// }
+	//
+	// var to []TaskBarOpt
+	// if s.schema != "" {
+	// 	to = append(to, WithTaskBarStepper(0, WithStepperSchema(s.schema)))
+	// }
+	// to = append(to, s.taskBarOpts...)
+	// to = append(to, opts...)
+	// err = grp.AddDownloader(s, task, d, to...)
 
-	var grp *GroupV2
-	if grp, err = s.findGroup(group); err != nil {
-		grp = &GroupV2{Name: group, dad: s}
-		grp.block = color.NewRowsBlock()
-		s.groups = append(s.groups, grp)
-		err = nil
-	}
-
-	var to []TaskBarOpt
-	if s.schema != "" {
-		to = append(to, WithTaskBarStepper(0, WithStepperSchema(s.schema)))
-	}
-	to = append(to, s.taskBarOpts...)
-	to = append(to, opts...)
-	err = grp.AddDownloader(s, task, d, to...)
+	err = s.add(
+		func(s *MPBV2, grp *GroupV2, task string, min, max int64, job Job, opts ...TaskBarOpt) (err error) {
+			return grp.AddDownloader(s, task, d, opts...)
+		},
+		group, task, 0, 0, nil, opts...)
 	return
 }
 
 func (s *MPBV2) AddBar(group, task string, min, max int64, job Job, opts ...TaskBarOpt) (err error) {
+	// s.muPainting.Lock()
+	// defer s.muPainting.Unlock()
+	//
+	// var grp *GroupV2
+	// if grp, err = s.findGroup(group); err != nil {
+	// 	grp = &GroupV2{Name: group, dad: s}
+	// 	grp.block = color.NewRowsBlock()
+	// 	s.groups = append(s.groups, grp)
+	// 	err = nil
+	// }
+	//
+	// var to []TaskBarOpt
+	// if s.schema != "" {
+	// 	to = append(to, WithTaskBarStepper(0, WithStepperSchema(s.schema)))
+	// }
+	// to = append(to, s.taskBarOpts...)
+	// to = append(to, opts...)
+	// err = grp.AddTask(s, task, min, max, job, to...)
+
+	err = s.add(
+		func(s *MPBV2, grp *GroupV2, task string, min, max int64, job Job, opts ...TaskBarOpt) (err error) {
+			return grp.AddTask(s, task, min, max, job, opts...)
+		},
+		group, task, min, max, job, opts...)
+	return
+}
+
+func (s *MPBV2) add(
+	tailfn func(s *MPBV2, grp *GroupV2, task string, min, max int64, job Job, opts ...TaskBarOpt) (err error),
+	group, task string, min, max int64, job Job,
+	opts ...TaskBarOpt,
+) (err error) {
 	s.muPainting.Lock()
 	defer s.muPainting.Unlock()
 
@@ -220,7 +260,7 @@ func (s *MPBV2) AddBar(group, task string, min, max int64, job Job, opts ...Task
 	}
 	to = append(to, s.taskBarOpts...)
 	to = append(to, opts...)
-	err = grp.AddTask(s, task, min, max, job, to...)
+	err = tailfn(s, grp, task, min, max, job, opts...)
 	return
 }
 
@@ -313,7 +353,7 @@ func (s *MPBV2) Run(ctx context.Context) {
 				if allDone := grp.runJobs(ctx, s); allDone {
 					pc.full = true
 					// try cleanup stacked signals in chPaint
-					var ignored = true
+					ignored := true
 					for ignored {
 						emptyIt(s.chPaint)
 						ignored = grp.repaint(pc)
@@ -344,7 +384,7 @@ func (s *MPBV2) stop(ctx context.Context, pc *paintCtx) {
 }
 
 func (s *MPBV2) start(ctx context.Context, pc *paintCtx) (downloaders map[*GroupV2][]*TaskBar) {
-	var m = make(map[*GroupV2][]*TaskBar)
+	m := make(map[*GroupV2][]*TaskBar)
 	for _, grp := range s.groups {
 		grp.muTasks.Lock()
 		for _, tsk := range grp.tasks {
@@ -403,7 +443,7 @@ func (s *MPBV2) repaint(pc *paintCtx) {
 		s.repaintImpl(pc)
 	} else if pc.full {
 		// try cleanup stacked signals in chPaint
-		var ignored = true
+		ignored := true
 		for ignored {
 			emptyIt(s.chPaint)
 			time.Sleep(time.Millisecond)
