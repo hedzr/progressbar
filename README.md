@@ -28,7 +28,7 @@ In other sides, we keep the codes under the control of reusing and isolations, w
 
 **V2 need go toolchain 1.25+ now (since v2.1.0)**.
 
-### V1
+### ~~V1~~
 
 Since v1.2.5, the minimal toolchain upgraded to go1.23.7.
 
@@ -45,11 +45,11 @@ It assumes you're commonly running several asynchronous tasks with
 rich terminal UI progressing display. The progressing UI can
 be a bar (called `Stepper`) or a spinner.
 
-A demo of `multibar` looks like:
+A demo of ~~`multibar`~~ (deprecated) looks like:
 
 ![anim](https://github.com/hzimg/blog-pics/blob/master/Picsee/Screen%20Recording%202023-01-20%20at%2018.52.29.webp?raw=true)
 
-`multibar2` is a complex sample app to show you more advanced usages.
+`mpbv2` is a sample app to show you more advanced usages.
 
 ### What's Steppers
 
