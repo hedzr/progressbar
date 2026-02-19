@@ -182,26 +182,12 @@ func (s *MPBV2) Close() {
 	}
 }
 
+// AddDownloadingBar adds a downloading task bar to the group.
+// If the group doesn't exist, it will be created.
+//
+// This method is a convenient wrapper of AddBar() for downloading tasks.
+// It's a better alternative to [DownloadTask] in v1.
 func (s *MPBV2) AddDownloadingBar(group, task string, d *DownloadTask, opts ...TaskBarOpt) (err error) {
-	// s.muPainting.Lock()
-	// defer s.muPainting.Unlock()
-	//
-	// var grp *GroupV2
-	// if grp, err = s.findGroup(group); err != nil {
-	// 	grp = &GroupV2{Name: group, dad: s}
-	// 	grp.block = color.NewRowsBlock()
-	// 	s.groups = append(s.groups, grp)
-	// 	err = nil
-	// }
-	//
-	// var to []TaskBarOpt
-	// if s.schema != "" {
-	// 	to = append(to, WithTaskBarStepper(0, WithStepperSchema(s.schema)))
-	// }
-	// to = append(to, s.taskBarOpts...)
-	// to = append(to, opts...)
-	// err = grp.AddDownloader(s, task, d, to...)
-
 	err = s.add(
 		func(s *MPBV2, grp *GroupV2, task string, min, max int64, job Job, opts ...TaskBarOpt) (err error) {
 			return grp.AddDownloader(s, task, d, opts...)
@@ -210,26 +196,21 @@ func (s *MPBV2) AddDownloadingBar(group, task string, d *DownloadTask, opts ...T
 	return
 }
 
+// AddBar adds a task bar to the group with a counter task.
+//
+// When you want to customize a worker with progressbar, you can
+// implement the worker with [WithTaskBarWorker].
+//
+//	mpb = progressbar.NewV2()
+//	mpb.AddBar("Group 1", "Task 1", 0, 100,
+//	  func(bar *progressbar.MPBV2, grp *progressbar.GroupV2, tsk *progressbar.TaskBar, progress int64, args ...any) (delta int64, err error) {
+//	    // do something here, and return the delta of progress and error if any.
+//	    time.Sleep(time.Duration(rng.Intn(60)+30) * time.Millisecond)
+//	    delta += int64(rng.Intn(5) + 1)
+//	    return
+//	  },
+//	)
 func (s *MPBV2) AddBar(group, task string, min, max int64, job Job, opts ...TaskBarOpt) (err error) {
-	// s.muPainting.Lock()
-	// defer s.muPainting.Unlock()
-	//
-	// var grp *GroupV2
-	// if grp, err = s.findGroup(group); err != nil {
-	// 	grp = &GroupV2{Name: group, dad: s}
-	// 	grp.block = color.NewRowsBlock()
-	// 	s.groups = append(s.groups, grp)
-	// 	err = nil
-	// }
-	//
-	// var to []TaskBarOpt
-	// if s.schema != "" {
-	// 	to = append(to, WithTaskBarStepper(0, WithStepperSchema(s.schema)))
-	// }
-	// to = append(to, s.taskBarOpts...)
-	// to = append(to, opts...)
-	// err = grp.AddTask(s, task, min, max, job, to...)
-
 	err = s.add(
 		func(s *MPBV2, grp *GroupV2, task string, min, max int64, job Job, opts ...TaskBarOpt) (err error) {
 			return grp.AddTask(s, task, min, max, job, opts...)
