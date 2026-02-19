@@ -135,6 +135,18 @@ func (mpb *mpbar2) Redraw() {
 
 func (mpb *mpbar2) SignalExit() <-chan struct{} { return mpb.sigExit }
 
+func (mpb *mpbar2) RunNow() {
+	for _, bars := range mpb.gb {
+		for _, bar := range bars.bars {
+			bar.RunNow()
+		}
+	}
+
+	for _, bar := range mpb.bars {
+		bar.RunNow()
+	}
+}
+
 func (mpb *mpbar2) AddToGroup(group string, maxBytes int64, title string, opts ...Opt) (index int) {
 	var found *barsGroup
 

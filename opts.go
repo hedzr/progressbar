@@ -9,6 +9,12 @@ import (
 
 type Opt func(pb *pbar)
 
+func WithBarDelayedStart(delayed bool) Opt {
+	return func(pb *pbar) {
+		pb.SetDelayedStart(delayed)
+	}
+}
+
 func WithBarSpinner(whichOne int) Opt {
 	return func(pb *pbar) {
 		if s, ok := spinners[whichOne]; ok {

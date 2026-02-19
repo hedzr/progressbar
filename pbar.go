@@ -24,7 +24,9 @@ func defaultBytes(mpbar MultiPB, maxBytes int64, title string, opts ...Opt) PB {
 		opt(pb)
 	}
 
-	go pb.run()
+	if !pb.delayed {
+		go pb.run()
+	}
 
 	return pb
 }
@@ -53,6 +55,9 @@ type PB interface {
 
 	// Bounds return lowerBound, upperBound and progress atomically.
 	Bounds() (lb, ub, progress int64)
+
+	SetDelayedStart(delayed bool) // if delayed is true, the bar will not start until RunNow() is called. Otherwise, it will start immediately.
+	RunNow()                      // start the bar if it is delayed
 }
 
 type (
@@ -85,12 +90,15 @@ type pbar struct {
 	muPainting sync.RWMutex
 
 	completed bool
+	delayed   bool
 
 	// logger *slog.Logger
 }
 
-var _ PB = ((*pbar)(nil))
-var _ MiniResizeableBar = ((*pbar)(nil))
+var (
+	_ PB                = ((*pbar)(nil))
+	_ MiniResizeableBar = ((*pbar)(nil))
+)
 
 func (pb *pbar) Close() {
 	pb.muPainting.Lock()
@@ -147,6 +155,7 @@ func (pb *pbar) Dur() (dur time.Duration) {
 	dur = pb.stopTime.Sub(pb.startTime)
 	return
 }
+
 func (pb *pbar) Completed() bool {
 	return pb.completed
 }
@@ -191,6 +200,17 @@ func (pb *pbar) invalidate() {
 
 func (pb *pbar) redraw() {
 	pb.mpbar.Redraw()
+}
+
+func (pb *pbar) SetDelayedStart(delayed bool) {
+	pb.delayed = delayed
+}
+
+func (pb *pbar) RunNow() {
+	if pb.delayed {
+		pb.delayed = false
+		pb.run()
+	}
 }
 
 func (pb *pbar) run() {

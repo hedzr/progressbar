@@ -27,6 +27,9 @@ type MultiPB interface {
 	Percent(index int) string   // just for stepper
 	PercentF(index int) float64 // return 0.905
 	PercentI(index int) int     // '90.5' -> return 91
+
+	// start all delayed bars
+	RunNow()
 }
 
 func multiBar(opts ...MOpt) *mpbar {
@@ -103,6 +106,12 @@ func (mpb *mpbar) Redraw() {
 }
 
 func (mpb *mpbar) SignalExit() <-chan struct{} { return mpb.sigExit }
+
+func (mpb *mpbar) RunNow() {
+	for _, bar := range mpb.bars {
+		bar.RunNow()
+	}
+}
 
 func (mpb *mpbar) Bar(index int) BarT {
 	mpb.rw.RLock()
@@ -192,10 +201,10 @@ func (mpb *mpbar) redrawNow() {
 		return
 	}
 
-	var done = true
+	done := true
 	var cnt int
 
-	var first = atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 0, 1)
+	first := atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 0, 1)
 	if !first {
 		color.Left(1000)
 		color.Up(len(mpb.bars) - mpb.lines)

@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,13 +21,13 @@ import (
 	"github.com/hedzr/progressbar/v2"
 )
 
-type TitledUrl string
+type TitledURL string
 
-func (t TitledUrl) String() string {
+func (t TitledURL) String() string {
 	return string(t)
 }
 
-func (t TitledUrl) Title() string {
+func (t TitledURL) Title() string {
 	parse, err := url.Parse(string(t))
 	if err != nil {
 		return string(t)
@@ -106,8 +107,23 @@ func (t TitledUrl) Title() string {
 
 //
 
+type Jobs struct {
+	Items []*Job
+	mpb   progressbar.MultiPB
+}
+
+func (j *Jobs) Add(job *Job) { j.Items = append(j.Items, job) }
+
+func (j *Jobs) Start() {
+	// for _, job := range j.Items {
+	// 	job.mpb.RunNow() // start all delayed bars
+	// 	return
+	// }
+	j.mpb.RunNow() // start all delayed bars
+}
+
 type Job struct {
-	Url TitledUrl
+	Url TitledURL
 
 	writer     io.Writer // writing to pbar to update scrollpos in the scrolling range.
 	totalTicks int64     // up-bound of the scrolling range.
@@ -122,6 +138,10 @@ type Job struct {
 
 func (j *Job) Start() {
 	// some initial stuffs can be put here
+	bar := j.mpb.Bar(j.index)
+	if b, ok := bar.(interface{ RunNow() }); ok {
+		b.RunNow() // start all delayed bars
+	}
 }
 
 func (j *Job) Update(delta int) int64 {
@@ -181,6 +201,11 @@ stopped:
 	}
 	return
 }
+
+func (j *Job) OnDataPrepared(bar progressbar.MiniResizeableBar, data *progressbar.SchemaData) {
+	//
+}
+
 func (j *Job) onCompleted(bar progressbar.MiniResizeableBar) {
 	// trigger terminated
 }
@@ -193,19 +218,25 @@ type groupedJobs struct {
 func (s groupedJobs) Title() string { return s.title }
 
 func doEachGroupWithTasks(mpb progressbar.GroupedPB, wg *sync.WaitGroup, group groupedJobs) {
-	if mpb == nil {
-		mpb := progressbar.New().(progressbar.GroupedPB)
+	var jobs Jobs
+
+	if mpb == nil && jobs.mpb == nil {
+		mpb = progressbar.New().(progressbar.GroupedPB)
 		defer mpb.Close() // cleanup
 	}
+
+	jobs.mpb = mpb
+
 	if wg == nil {
 		wg = &sync.WaitGroup{}
 		defer wg.Wait() // waiting for all tasks done.
 	}
 
-	var jobs []*Job
-
 	for _, ver := range group.group {
-		url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+		url1 := TitledURL("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+		if strings.HasPrefix(ver, "https://") {
+			url1 = TitledURL(ver)
+		}
 		job := &Job{Url: url1, mpb: mpb, wg: wg}
 
 		job.totalTicks = int64(3500 + int(rand.Int31n(2000))) // 3500ms
@@ -213,11 +244,13 @@ func doEachGroupWithTasks(mpb progressbar.GroupedPB, wg *sync.WaitGroup, group g
 			group.Title(),
 			job.totalTicks,
 			url1.Title(),
+			progressbar.WithBarDelayedStart(true),
 			progressbar.WithBarResumeable(*resumePtr),
 			progressbar.WithBarInitialValue(0), // no sense, just a placeholder, comment it safely
 			progressbar.WithBarOnStart(job.onStart),
 			progressbar.WithBarWorker(job.doWorker),
 			progressbar.WithBarOnCompleted(job.onCompleted),
+			progressbar.WithBarOnDataPrepared(job.OnDataPrepared),
 			progressbar.WithBarStepper(whichStepper),
 			progressbar.WithBarStepperPostInit(func(bar progressbar.BarT) {
 				bar.SetHighlightColor(color.FgDarkGray)
@@ -231,9 +264,11 @@ func doEachGroupWithTasks(mpb progressbar.GroupedPB, wg *sync.WaitGroup, group g
 		)
 
 		wg.Add(1)
-		jobs = append(jobs, job)
-		job.Start()
+		jobs.Add(job)
+		// job.Start()
 	}
+
+	jobs.Start() // start all delayed bars
 }
 
 func downloadGroups1Worked() {
@@ -305,6 +340,46 @@ func downloadGroups3Worked() {
 	}
 }
 
+func downloadGroups4Worked() {
+	fmt.Println("This is a demo for downloading some files with progress bars. The download is fake, but the bars are real.")
+	for _, group := range []groupedJobs{
+		{
+			[]string{
+				"https://pdfa.org/download-area/smallest-possible-pdf/smallest-possible-pdf-1.0.pdf",
+				// "https://pdfa.org/download-area/smallest-possible-pdf/smallest-possible-pdf-1.5.pdf",
+				// "https://pdfa.org/download-area/smallest-possible-pdf/smallest-possible-pdf-1.5-flate.pdf",
+				// "https://pdfa.org/download-area/smallest-possible-pdf/smallest-possible-pdf-1.5-xrefstm-only.pdf",
+				// "https://pdfa.org/download-area/smallest-possible-pdf/smallest-possible-pdf-2.0.pdf",
+				// "https://pdfa.org/download-area/smallest-possible-pdf/smallest-possible-pdf-2.0-stms.pdf",
+				// "https://pdfa.org/download-area/smallest-possible-pdf/smallest-possible-pdf-2.0-stms-flate.pdf",
+				// "https://forum.armbian.com/uploads/n2a/n2a-7dfd7b3c7b85ea195e52581a2289ee11ef7d3bf4.avatars_letters.png",
+
+				// I just uploaded a 421 bytes webp file to test the case of very small file, and it works well.
+				// provider: https://picui.cn/
+				"https://youke.xn--y7xa690gmna.cn/s1/2026/02/19/69968c28e82b9.webp",
+
+				// // https://serc.carleton.edu/details/images/8712.html
+				// "https://serc.carleton.edu/download/images/8712/trans1.v3.gif",
+
+				// https://meee.com.tw/AQ55MsI
+				"https://meee.com.tw/AQ55MsI",
+			},
+			"000",
+		},
+		// {[]string{"1.14.1", "1.15.1"}, "AAA"},
+		// {[]string{"1.16.1", "1.17.1", "1.18.1"}, "BBB"},
+	} {
+		doEachGroupWithTasks(nil, nil, group)
+	}
+
+	// for _, group := range []groupedJobs{
+	// 	{[]string{"1.20.1", "1.21.1"}, "CCC"},
+	// 	{[]string{"1.22.1"}, "DDD"},
+	// } {
+	// 	doEachGroupWithTasks(nil, nil, group)
+	// }
+}
+
 var (
 	percentPtr *int
 	resumePtr  *bool
@@ -351,11 +426,15 @@ func main() {
 		}
 	}
 	switch algor {
+	case 4:
+		downloadGroups4Worked()
 	case 3:
 		downloadGroups3Worked()
 	case 2:
 		downloadGroups2Worked()
-	default:
+	case 1:
 		downloadGroups1Worked()
+	default:
+		downloadGroups4Worked()
 	}
 }
