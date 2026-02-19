@@ -20,11 +20,11 @@ import (
 //
 // Via this API you can easily download one and more http files.
 //
-//	type TitledUrl string
+//	type TitledURL string
 //
-//	func (t TitledUrl) String() string { return string(t) }
+//	func (t TitledURL) String() string { return string(t) }
 //
-//	func (t TitledUrl) Title() string {
+//	func (t TitledURL) Title() string {
 //		if parse, err := url.Parse(string(t)); err != nil {
 //			return string(t)
 //		}
@@ -38,7 +38,7 @@ import (
 //		defer tasks.Close()
 //
 //		for _, ver := range group {
-//			url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz")
+//			url1 := TitledURL("https://dl.google.com/go/go" + ver + ".src.tar.gz")
 //			tasks.Add(url1.String(), url1,
 //				progressbar.WithBarStepper(whichStepper),
 //			)
@@ -100,11 +100,11 @@ func (s *DownloadTasks) Close() {
 // can customize its title with `interface{ Title() string`.
 // A sample could be:
 //
-//	type TitledUrl string
+//	type TitledURL string
 //
-//	func (t TitledUrl) String() string { return string(t) }
+//	func (t TitledURL) String() string { return string(t) }
 //
-//	func (t TitledUrl) Title() string {
+//	func (t TitledURL) Title() string {
 //		if parse, err := url.Parse(string(t)); err != nil {
 //			return string(t)
 //		}
@@ -118,7 +118,7 @@ func (s *DownloadTasks) Close() {
 //		defer tasks.Close()
 //
 //		for _, ver := range group {
-//			url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz")
+//			url1 := TitledURL("https://dl.google.com/go/go" + ver + ".src.tar.gz")
 //			tasks.Add(url1.String(), url1,
 //				progressbar.WithBarStepper(whichStepper),
 //			)
@@ -155,9 +155,11 @@ func (s *DownloadTasks) Add(url string, filename any, opts ...Opt) {
 		WithBarWorker(task.doWorker),
 		WithBarOnCompleted(task.onCompleted),
 		WithBarOnStart(task.onStart),
+		WithBarDelayedStart(true),
 	)
 	o = append(o, opts...)
 
+	s.wg.Add(1)
 	s.bar.Add(
 		100,
 		task.Title, // fmt.Sprintf("downloading %v", s.fn),
@@ -169,12 +171,14 @@ func (s *DownloadTasks) Add(url string, filename any, opts ...Opt) {
 		// WithBarOnStart(s.onStart),
 		o...,
 	)
-
-	s.wg.Add(1)
 }
 
 func (s *DownloadTasks) Wait() {
 	s.wg.Wait()
+}
+
+func (s *DownloadTasks) RunNow() {
+	s.bar.RunNow() // start all delayed bars
 }
 
 type DownloadTask struct {
