@@ -19,13 +19,13 @@ import (
 	"github.com/hedzr/progressbar/v2"
 )
 
-type TitledUrl string
+type TitledURL string
 
-func (t TitledUrl) String() string {
+func (t TitledURL) String() string {
 	return string(t)
 }
 
-func (t TitledUrl) Title() string {
+func (t TitledURL) Title() string {
 	parse, err := url.Parse(string(t))
 	if err != nil {
 		return string(t)
@@ -134,7 +134,7 @@ func doEachGroup2(group []string) {
 	defer tasks.Close()
 
 	for _, ver := range group {
-		url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+		url1 := TitledURL("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
 		// fmt.Printf("adding %v (title: %v)\n", url1.String(), url1.Title())
 		tasks.Add(url1.String(), url1,
 			progressbar.WithBarStepper(whichStepper),
@@ -153,7 +153,7 @@ func doEachGroup(group []string) {
 	defer tasks.Close()
 
 	for _, ver := range group {
-		url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+		url1 := TitledURL("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
 		// fn := "go" + ver + ".src.tar.gz"                           // fn := fmt.Sprintf("go%v.src.tar.gz", ver)
 		// fmt.Printf("adding %v (title: %v)\n", url1.String(), url1.Title())
 		tasks.Add(url1.String(), url1,

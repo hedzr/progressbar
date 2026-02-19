@@ -35,7 +35,7 @@ func TestNewV2(t *testing.T) {
 		for j := 0; j < numTasks; j++ {
 			if (j == numTasks-1 || i == 0) && verIdx < len(versions) {
 				ver := versions[verIdx]
-				url1 := TitledUrl("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+				url1 := TitledURL("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
 				mpb.AddDownloadingBar(
 					"Group "+strconv.Itoa(i), "Task #"+strconv.Itoa(j),
 					&DownloadTask{
@@ -57,13 +57,13 @@ func TestNewV2(t *testing.T) {
 	mpb.Run(ctx)
 }
 
-type TitledUrl string
+type TitledURL string
 
-func (t TitledUrl) String() string {
+func (t TitledURL) String() string {
 	return string(t)
 }
 
-func (t TitledUrl) Title() string {
+func (t TitledURL) Title() string {
 	parse, err := url.Parse(string(t))
 	if err != nil {
 		return string(t)

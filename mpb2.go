@@ -54,25 +54,25 @@ type barsGroup struct {
 	title string
 }
 
-func (bars *barsGroup) Match(title string) bool {
-	return bars.title == title
+func (grp *barsGroup) Match(title string) bool {
+	return grp.title == title
 }
 
-func (bars *barsGroup) Close() {
-	for _, pb := range bars.bars {
+func (grp *barsGroup) Close() {
+	for _, pb := range grp.bars {
 		pb.Close()
 	}
-	bars.bars = nil
+	grp.bars = nil
 }
 
-func (bars *barsGroup) Add(mpb *mpbar2, maxBytes int64, title string, opts ...Opt) (index int) {
+func (grp *barsGroup) Add(mpb *mpbar2, maxBytes int64, title string, opts ...Opt) (index int) {
 	pb := defaultBytes(mpb, maxBytes, title, opts...).(*pbar) //nolint:errcheck //the call is always ok
 	pb.stepper.SetIndentChars(indentChars)
 
 	mpb.rw.Lock()
-	bars.bars = append(bars.bars, pb)
+	grp.bars = append(grp.bars, pb)
 	mpb.rw.Unlock()
-	return len(bars.bars) - 1
+	return len(grp.bars) - 1
 }
 
 func (mpb *mpbar2) Close() {
@@ -254,7 +254,7 @@ func (mpb *mpbar2) redrawNow() {
 			totalRows += len(gv.bars)
 		}
 
-		var first = atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 0, 1)
+		first := atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 0, 1)
 		if !first {
 			color.Left(1000)
 			color.Up(totalRows - mpb.lines)
@@ -298,9 +298,9 @@ func (mpb *mpbar2) redrawNow() {
 			}
 		}
 	} else {
-		var done = true
-		var cnt = 0
-		var first = atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 0, 1)
+		done := true
+		cnt := 0
+		first := atomic.CompareAndSwapInt32(&mpb.dirtyFlag, 0, 1)
 		if !first {
 			color.Left(1000)
 			color.Up(len(mpb.bars) - mpb.lines)
