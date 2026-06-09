@@ -12,7 +12,7 @@ go 1.25.0
 
 //replace github.com/hedzr/tuilive => ../tuilive
 
-require github.com/hedzr/is v0.9.0
+require github.com/hedzr/is v0.9.1
 
 require (
 	golang.org/x/net v0.50.0 // indirect
