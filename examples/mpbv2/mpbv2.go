@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -166,7 +167,7 @@ func doEachGroupWithTasks(mpb progressbar.GroupedPB, wg *sync.WaitGroup, group g
 	}
 
 	for _, ver := range group.group {
-		url1 := TitledURL("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+		url1 := getTitledURL(ver)
 		job := &Job{Url: url1, mpb: mpb, wg: wg}
 
 		job.totalTicks = int64(3500 + int(rand.Int31n(2000))) // 3500ms
@@ -270,10 +271,17 @@ func downloadGroups3Worked() {
 	}
 }
 
+func getTitledURL(ver string) TitledURL {
+	// url1 := TitledURL("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+	// url1 := getTitledURL(ver) // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+
+	return TitledURL("https://dl.google.com/go/go" + ver + "." + runtime.GOOS + "-" + runtime.GOARCH + ".tar.gz")
+}
+
 func downloadGroupsV2Worked() {
 	// const mySchema = `{{.Indent}}{{.Prepend}} <font color="green">{{.Title}}</font> {{.Percent}} {{.Bar}} {{.Current}}/{{.Total}} {{.Speed}} {{.Elapsed}} {{.Append}}`
 	// var versions = []string{"1.16.1", "1.17.1", "1.18.1", "1.19.1", "1.20.1", "1.21.1", "1.22.1", "1.23.1", "1.24.1"}
-	versions := []string{"1.24.1"}
+	versions := []string{"1.27.1"}
 
 	var mpb *progressbar.MPBV2
 	if schema := os.Getenv("SCHEMA"); schema != "" {
@@ -298,7 +306,7 @@ func downloadGroupsV2Worked() {
 	verIdx := 0
 	addDownloadJob := func(bar *progressbar.MPBV2, i, j int) {
 		ver := versions[verIdx]
-		url1 := TitledURL("https://dl.google.com/go/go" + ver + ".src.tar.gz") // url := fmt.Sprintf("https://dl.google.com/go/go%v.src.tar.gz", ver)
+		url1 := getTitledURL(ver)
 		bar.AddDownloadingBar(
 			"Group "+strconv.Itoa(i), "Task #"+strconv.Itoa(j)+"/"+url1.Title(),
 			&progressbar.DownloadTask{
@@ -415,4 +423,7 @@ func main() {
 	default:
 		downloadGroupsV2Worked()
 	}
+
+	// arm64, darwin
+	// println(runtime.GOARCH, runtime.GOOS)
 }
