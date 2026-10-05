@@ -7,6 +7,7 @@ go.work
 .local/
 lint.txt
 logs/
+test.sh
 
 *.pdf
 *.py
