@@ -1,5 +1,12 @@
 # CHANGELOG
 
+- v2.2.0
+  - security patch
+  - upgrade `is`
+  - move to go toolchain 1.26
+  - updated gh action
+  - updated test download url in mpbv2.go
+
 - v2.1.2
   - security patch
   - upgrade `is`

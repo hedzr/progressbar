@@ -3,6 +3,7 @@
 [![Go](https://github.com/hedzr/progressbar/actions/workflows/go.yml/badge.svg)](https://github.com/hedzr/progressbar/actions/workflows/go.yml)
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/hedzr/progressbar.svg?label=release)](https://github.com/hedzr/progressbar/releases)
 [![go.dev](https://img.shields.io/badge/go-dev-green)](https://pkg.go.dev/github.com/hedzr/progressbar)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/hedzr/progressbar)
 
 An asynchronous, multitask console/terminal progressbar widget. The main look of default stepper is:
 
@@ -26,7 +27,10 @@ In other sides, we keep the codes under the control of reusing and isolations, w
 
 - See the [CHANGELOG](https://github.com/hedzr/progressbar/blob/master/CHANGELOG)
 
-**V2 need go toolchain 1.25+ now (since v2.1.0)**.
+**V2 need go toolchain 1.26+ now (since v2.2.0)**.
+
+- progressbar v2.2+, golang 1.26
+- progressbar v2.1+, golang 1.25
 
 ### ~~V1~~
 
